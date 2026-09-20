@@ -1,0 +1,149 @@
+/* ── Global reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  /* Prevent text selection during gameplay */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;            /* no page scroll */
+  background: #1a1a2e;         /* dark letterbox colour */
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  /* Disable all touch behaviours: scroll, zoom, pull-to-refresh */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* Canvas sits in the exact centre; JS sets its pixel size */
+#gameCanvas {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* image-rendering keeps pixel art crisp (no effect on vector, harmless) */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ── Portrait-phone rotate overlay ──
+   Shown when the viewport is taller than it is wide (portrait).
+   Hidden in landscape via the media query below. */
+#rotateOverlay {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #1a1a2e;
+  align-items: center;
+  justify-content: center;
+  color: #f5a623;
+  text-align: center;
+}
+
+.rotate-box {
+  padding: 2rem;
+}
+
+.rotate-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.rotate-box p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+/* Hide overlay in landscape */
+@media (orientation: landscape) {
+  #rotateOverlay { display: none; }
+}
+
+/* ── Touch controls ── */
+#touchControls {
+  display: none;               /* JS shows this on touch devices */
+  position: fixed;
+  inset: 0;
+  pointer-events: none;        /* the children handle their own events */
+  z-index: 100;
+}
+
+/* Joystick zone: bottom-left quadrant */
+#joystickZone {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 120px;
+  height: 120px;
+  pointer-events: all;
+}
+
+#joystickBase {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.25);
+  border: 3px solid rgba(245, 166, 35, 0.6);
+}
+
+#joystickKnob {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.8);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;        /* knob follows touch, base handles events */
+}
+
+/* Blessing button: bottom-right, at least 64px */
+#blessingBtn {
+  display: none;               /* JS shows on touch */
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.85);
+  border: 3px solid #fff8;
+  font-size: 2rem;
+  cursor: pointer;
+  pointer-events: all;
+  z-index: 101;
+  touch-action: none;
+}
+
+/* Mute button: top-right corner, always visible */
+#muteBtn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.45);
+  border: 2px solid rgba(255,255,255,0.4);
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 200;
+  touch-action: none;
+}
+
+#muteBtn:hover { background: rgba(0,0,0,0.65); }

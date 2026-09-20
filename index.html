@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Prevent mobile browser zoom and scaling -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Bappa's Journey</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Main game canvas — all rendering happens here -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Portrait-phone overlay: shown via CSS when height > width -->
+  <div id="rotateOverlay">
+    <div class="rotate-box">
+      <div class="rotate-icon">&#8635;</div>
+      <p>Please rotate your phone<br>for the best view!</p>
+    </div>
+  </div>
+
+  <!-- Touch controls (shown only on touch devices via JS) -->
+  <div id="touchControls">
+    <!-- Virtual joystick zone (left side) -->
+    <div id="joystickZone">
+      <div id="joystickBase"></div>
+      <div id="joystickKnob"></div>
+    </div>
+    <!-- Blessing / action button (right side) -->
+    <button id="blessingBtn" aria-label="Blessing">&#9728;</button>
+  </div>
+
+  <!-- Mute button — always visible -->
+  <button id="muteBtn" aria-label="Toggle sound">&#128266;</button>
+
+  <!-- ── Script load order matters: config first, main last ── -->
+  <script src="js/config.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/input.js"></script>
+  <!-- Scenes -->
+  <script src="js/scenes/title.js"></script>
+  <script src="js/scenes/story.js"></script>
+  <script src="js/scenes/level1.js"></script>
+  <script src="js/scenes/level2.js"></script>
+  <script src="js/scenes/level3.js"></script>
+  <script src="js/scenes/recap.js"></script>
+  <script src="js/scenes/end.js"></script>
+  <!-- Main loop starts last -->
+  <script src="js/main.js"></script>
+
+</body>
+</html>
