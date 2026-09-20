@@ -794,6 +794,219 @@ G.scenery = (function () {
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
+  // ── drawNightCourtyard(ctx, groundY, accentColor, t) ─────────────────────
+  // Warm amber-to-indigo night sky + courtyard floor used by slides 3 and 4.
+  // accentColor changes the horizon glow tint per slide.
+  function drawNightCourtyard(ctx, groundY, accentColor, t) {
+    accentColor = accentColor || '#C87020';
+    // Sky gradient
+    var skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+    skyGrad.addColorStop(0,   '#1B1F4B');
+    skyGrad.addColorStop(0.55,'#2D1F5E');
+    skyGrad.addColorStop(0.85,'#5A3010');
+    skyGrad.addColorStop(1,    accentColor);
+    ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, G.W, groundY);
+
+    // Stars in upper half
+    drawStars(ctx, 0, groundY * 0.55, t);
+
+    // Warm horizon glow
+    var hGlow = ctx.createLinearGradient(0, groundY - 60, 0, groundY);
+    hGlow.addColorStop(0, 'rgba(200,120,20,0)');
+    hGlow.addColorStop(1, 'rgba(200,120,20,0.35)');
+    ctx.fillStyle = hGlow; ctx.fillRect(0, groundY - 60, G.W, 60);
+
+    // Courtyard floor
+    var floorGrad = ctx.createLinearGradient(0, groundY, 0, groundY + 200);
+    floorGrad.addColorStop(0, '#5A3A1A');
+    floorGrad.addColorStop(1, '#2A1808');
+    ctx.fillStyle = floorGrad; ctx.fillRect(0, groundY, G.W, G.H - groundY);
+
+    // Subtle stone tile lines on floor
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+    for (var tfx = 0; tfx < G.W; tfx += 100) {
+      ctx.beginPath(); ctx.moveTo(tfx, groundY); ctx.lineTo(tfx, groundY + 200); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(0, groundY + 40); ctx.lineTo(G.W, groundY + 40); ctx.stroke();
+  }
+
+  // ── drawModakPlateTable(ctx, cx, groundY, t) ─────────────────────────────
+  // A long low wooden table with a brass plate of 6-7 golden modaks and steam.
+  // (cx, groundY) = centre-bottom of the table.
+  function drawModakPlateTable(ctx, cx, groundY, t) {
+    // Table legs
+    for (var tl = -1; tl <= 1; tl += 2) {
+      ctx.beginPath(); ctx.rect(cx + tl * 120 - 7, groundY - 38, 14, 38);
+      ctx.fillStyle = '#6A3A10'; ctx.fill();
+      ctx.strokeStyle = '#3A1808'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    // Table top
+    ctx.beginPath(); ctx.rect(cx - 145, groundY - 46, 290, 16);
+    ctx.fillStyle = '#8B5020'; ctx.fill();
+    ctx.strokeStyle = '#4A2808'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Wood grain lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.8;
+    for (var wg = cx - 130; wg < cx + 130; wg += 18) {
+      ctx.beginPath(); ctx.moveTo(wg, groundY - 46); ctx.lineTo(wg + 4, groundY - 30); ctx.stroke();
+    }
+    // Table front face
+    ctx.beginPath(); ctx.rect(cx - 145, groundY - 30, 290, 10);
+    ctx.fillStyle = '#6A3A10'; ctx.fill();
+
+    // ── Brass plate ───────────────────────────────────────────────────
+    // Plate ellipse (shiny brass)
+    var plateY = groundY - 52;
+    ctx.beginPath(); ctx.ellipse(cx, plateY, 110, 24, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#C88030'; ctx.fill();
+    ctx.strokeStyle = '#7A4808'; ctx.lineWidth = 2; ctx.stroke();
+    // Inner rim (lighter)
+    ctx.beginPath(); ctx.ellipse(cx, plateY, 100, 21, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#E0A040'; ctx.fill();
+    // Plate highlight
+    ctx.beginPath(); ctx.ellipse(cx - 30, plateY - 6, 30, 8, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,220,100,0.40)'; ctx.fill();
+
+    // ── 7 modaks arranged on the plate ────────────────────────────────
+    // Positions: spread across plate in two rows (5 front, 2 back)
+    var mCoords = [
+      [-72, 0], [-38, 0], [0, 0], [38, 0], [72, 0],   // front row
+      [-28, -14], [28, -14],                             // back row
+    ];
+    for (var mk = 0; mk < mCoords.length; mk++) {
+      var mx = cx + mCoords[mk][0];
+      var my = plateY + mCoords[mk][1];
+      var msc = mk >= 5 ? 0.8 : 1.0;  // back row slightly smaller
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.scale(msc, msc);
+      // Modak body (cream-gold)
+      ctx.beginPath();
+      ctx.moveTo(0, -16);
+      ctx.bezierCurveTo(12, -16, 14, -4, 9, 4);
+      ctx.bezierCurveTo(5, 9, -5, 9, -9, 4);
+      ctx.bezierCurveTo(-14, -4, -12, -16, 0, -16);
+      ctx.fillStyle = '#F5E8B0'; ctx.fill();
+      ctx.strokeStyle = '#9A6820'; ctx.lineWidth = 1; ctx.stroke();
+      // Pleat lines (3 ridges)
+      ctx.strokeStyle = 'rgba(150,100,20,0.45)'; ctx.lineWidth = 0.9;
+      for (var pl2 = -1; pl2 <= 1; pl2++) {
+        ctx.beginPath();
+        ctx.moveTo(pl2 * 4, -14); ctx.bezierCurveTo(pl2 * 3, -6, pl2 * 2, 0, pl2 * 3, 7);
+        ctx.stroke();
+      }
+      // Top knot
+      ctx.beginPath();
+      ctx.moveTo(-3, -16); ctx.bezierCurveTo(-5, -22, 5, -22, 3, -16);
+      ctx.fillStyle = '#E0A840'; ctx.fill();
+      // Sparkle dot on top knot
+      var spA = 0.4 + Math.sin(t * 3.5 + mk) * 0.3;
+      ctx.beginPath(); ctx.arc(0, -20, 2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,240,120,' + spA + ')'; ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Steam wisps above the plate ────────────────────────────────────
+    for (var sw = 0; sw < 5; sw++) {
+      var swx = cx - 60 + sw * 30;
+      var swPhase = (t * 0.6 + sw * 0.4) % 1;
+      var swy = plateY - 10 - swPhase * 55;
+      var swA = (1 - swPhase) * 0.35;
+      if (swA > 0.04) {
+        var swGrad = ctx.createRadialGradient(swx, swy, 1, swx, swy, 12);
+        swGrad.addColorStop(0, 'rgba(255,255,255,' + swA + ')');
+        swGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(swx, swy, 12, 0, Math.PI * 2);
+        ctx.fillStyle = swGrad; ctx.fill();
+      }
+    }
+  }
+
+  // ── drawParvatiDoorway(ctx, x, groundY, t) ────────────────────────────────
+  // Warm glowing kitchen doorway with Parvati's soft silhouette inside.
+  // (x, groundY) = centre-bottom of the doorway.
+  function drawParvatiDoorway(ctx, x, groundY, t) {
+    var flicker = 0.70 + Math.sin(t * 2.3) * 0.12;
+
+    // Wall section
+    ctx.beginPath(); ctx.rect(x - 90, groundY - 340, 180, 340);
+    ctx.fillStyle = '#6A5848'; ctx.fill();
+    // Stone texture lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 0.8;
+    for (var sw2 = groundY - 320; sw2 < groundY; sw2 += 28) {
+      ctx.beginPath(); ctx.moveTo(x - 90, sw2); ctx.lineTo(x + 90, sw2); ctx.stroke();
+    }
+
+    // Door arch opening (kitchen glow fills it)
+    var kitchenGlow = ctx.createRadialGradient(x, groundY - 140, 10, x, groundY - 140, 85);
+    kitchenGlow.addColorStop(0, 'rgba(255,200,80,' + flicker + ')');
+    kitchenGlow.addColorStop(0.6, 'rgba(220,140,40,' + (flicker * 0.6) + ')');
+    kitchenGlow.addColorStop(1, 'rgba(180,80,10,0)');
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x - 55, groundY - 270, 110, 270);
+    ctx.arc(x, groundY - 270, 55, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fillStyle = kitchenGlow; ctx.fill();
+    ctx.restore();
+
+    // Door frame (dark carved wood)
+    ctx.beginPath(); ctx.rect(x - 58, groundY - 272, 116, 272);
+    ctx.fillStyle = '#2E1808'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, groundY - 272, 58, Math.PI, 0);
+    ctx.fillStyle = '#2E1808'; ctx.fill();
+    // Frame outline gold
+    ctx.strokeStyle = G.COL.goldDark; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.rect(x - 58, groundY - 272, 116, 272); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, groundY - 272, 58, Math.PI, 0); ctx.stroke();
+
+    // Opening inside
+    ctx.beginPath(); ctx.rect(x - 52, groundY - 268, 104, 268);
+    ctx.fillStyle = 'rgba(200,130,40,' + (flicker * 0.8) + ')'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, groundY - 268, 52, Math.PI, 0);
+    ctx.fillStyle = 'rgba(200,130,40,' + (flicker * 0.8) + ')'; ctx.fill();
+
+    // Parvati silhouette inside — simple, just a shape, no detail (distance)
+    ctx.save();
+    ctx.translate(x - 5, groundY);
+    ctx.globalAlpha = 0.65;
+    // Saree skirt
+    ctx.beginPath(); ctx.ellipse(0, -60, 22, 60, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A0808'; ctx.fill();
+    // Torso
+    ctx.beginPath(); ctx.ellipse(0, -130, 14, 22, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A0808'; ctx.fill();
+    // Head
+    ctx.beginPath(); ctx.ellipse(0, -168, 14, 15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A0808'; ctx.fill();
+    // Hair bun
+    ctx.beginPath(); ctx.ellipse(0, -182, 9, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A0808'; ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // Torana garland above door
+    var torSag = 12 + Math.sin(t * 0.5) * 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 56, groundY - 272);
+    ctx.quadraticCurveTo(x, groundY - 272 + torSag, x + 56, groundY - 272);
+    ctx.strokeStyle = G.COL.marigold; ctx.lineWidth = 3; ctx.stroke();
+    for (var tg = 0; tg <= 5; tg++) {
+      var tgf = tg / 5;
+      var tgx = x - 56 + tgf * 112;
+      var tgy = groundY - 272 + 4 * tgf * (1 - tgf) * torSag;
+      ctx.beginPath(); ctx.arc(tgx, tgy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = tg % 2 === 0 ? G.COL.marigold : G.COL.saffron; ctx.fill();
+    }
+
+    // Floor glow spilling from doorway
+    var fgGlow = ctx.createRadialGradient(x, groundY, 2, x, groundY, 80);
+    fgGlow.addColorStop(0, 'rgba(255,180,60,' + (flicker * 0.35) + ')');
+    fgGlow.addColorStop(1, 'rgba(255,160,40,0)');
+    ctx.beginPath(); ctx.ellipse(x, groundY + 10, 80, 18, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fgGlow; ctx.fill();
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
   return {
     drawSky:                 drawSky,
     drawStars:               drawStars,
@@ -808,6 +1021,9 @@ G.scenery = (function () {
     drawOrnateGateDoor:      drawOrnateGateDoor,
     drawShivaSilhouette:     drawShivaSilhouette,
     drawElephantHeadOfLight: drawElephantHeadOfLight,
+    drawModakPlateTable:     drawModakPlateTable,
+    drawParvatiDoorway:      drawParvatiDoorway,
+    drawNightCourtyard:      drawNightCourtyard,
   };
 
 }());

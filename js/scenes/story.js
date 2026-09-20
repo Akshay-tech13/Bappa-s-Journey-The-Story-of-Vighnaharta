@@ -103,19 +103,27 @@ G.scenes['story'] = {
 
     // ── Illustration safe area: y 40..540, ground line y=520 ─────────
     var GROUND_Y = 520;
-    var cy = 260;   // legacy centre-Y used by slides 1-3 (unchanged)
+    var cy = 260;   // legacy: used by slide 3 (unchanged positions)
 
-    // ── Background ────────────────────────────────────────────────────
+    // ── Background — cohesive night palette across all slides ─────────
+    // Each slide uses drawNightCourtyard with a different accent tint,
+    // then draws its own foreground on top. Canvas below GROUND_Y is
+    // filled by drawNightCourtyard's floor gradient.
     if (_storySlide === 0) {
-      // Slide 0 has its own full-sky background; others use the slide.bg colour
       G.scenery.drawSky(ctx, 0, GROUND_Y, t);
+      // floor under slide 0 scene
+      ctx.fillStyle = '#2A1A0E'; ctx.fillRect(0, GROUND_Y, G.W, G.H - GROUND_Y);
+    } else if (_storySlide === 1) {
+      // drawNightCourtyard called inside slide 1 block (needs stars)
+      // floor fill done there; just clear the full canvas first
+      ctx.fillStyle = '#1B1F4B'; ctx.fillRect(0, 0, G.W, G.H);
+    } else if (_storySlide === 2) {
+      // Slide 2 draws its own purple→gold gradient + floor
+      ctx.fillStyle = '#2A1040'; ctx.fillRect(0, 0, G.W, G.H);
     } else {
-      ctx.fillStyle = slide.bg;
-      ctx.fillRect(0, 0, G.W, G.H);
+      // Slide 3 uses drawNightCourtyard
+      ctx.fillStyle = '#1B1F4B'; ctx.fillRect(0, 0, G.W, G.H);
     }
-    // Ground strip below horizon
-    ctx.fillStyle = slide.bg;
-    ctx.fillRect(0, GROUND_Y, G.W, G.H - GROUND_Y);
 
     // ── Slide illustrations ───────────────────────────────────────────
     if (_storySlide === 0) {
@@ -345,17 +353,89 @@ G.scenes['story'] = {
       }
 
     } else if (_storySlide === 3) {
-      // Ganesha celebrating with floating modaks
-      G.art.drawGanesha(ctx, cx, cy+200, t, { state:'celebrate', scale:1.3 });
-      var mpos=[[-160,-20,0],[140,-40,1.2],[-100,-90,2.4],[100,-80,0.6],[0,-120,1.8]];
-      for(var mi=0;mi<mpos.length;mi++){
-        G.art.drawModak(ctx,cx+mpos[mi][0],cy+200+mpos[mi][1]+Math.sin(t*2+mpos[mi][2])*8,1.2);
+      // ── SLIDE 3: Cosy Kailash courtyard — Ganesha and the modak plate ─
+      // DRAW ORDER: background → props → Mushak → Ganesha → edge sparkles
+      // Nothing may overlap Ganesha's face/trunk.
+
+      // 1. Night courtyard sky + floor (amber-tinted horizon for warmth)
+      G.scenery.drawNightCourtyard(ctx, GROUND_Y, '#D08020', t);
+
+      // 2. Overhead hanging garlands (far background, y ~60-120)
+      G.scenery.drawMarigoldGarland(ctx, 0,     80, 400,  80, t);
+      G.scenery.drawMarigoldGarland(ctx, 400,   70, 800,  70, t);
+      G.scenery.drawMarigoldGarland(ctx, 800,   75, G.W,  75, t);
+
+      // 3. Left: Parvati's warm kitchen doorway (silhouette inside)
+      G.scenery.drawParvatiDoorway(ctx, 160, GROUND_Y, t);
+
+      // 4. Diyas either side of scene (on the floor)
+      G.art.drawDiya(ctx, 340, GROUND_Y, true, t);
+      G.art.drawDiya(ctx, G.W - 140, GROUND_Y, true, t);
+
+      // 5. Table with modak plate — placed right of centre so Ganesha
+      //    stands to the LEFT of it. Table centre x=820.
+      var tableX = 820;
+      G.scenery.drawModakPlateTable(ctx, tableX, GROUND_Y, t);
+
+      // 6. Mushak — peeking from behind the RIGHT end of the table
+      //    dir:-1 so he faces left toward Ganesha
+      G.art.drawMushak(ctx, tableX + 110, GROUND_Y, t, { scale: 1.4, pose: 'peek', dir: -1 });
+
+      // 7. Ganesha — centre, big, drawn LAST so he is always on top
+      //    At scale 2.7 ≈ 297 px tall; feet at GROUND_Y, crown ~y=223
+      var gnX3 = cx - 80;   // slightly left of centre
+      G.art.drawGanesha(ctx, gnX3, GROUND_Y, t, { state: 'idle', scale: 2.7 });
+
+      // 8. Thought bubble above Ganesha (above crown, clear of safe area)
+      //    Crown is at ~GROUND_Y - 297, so bubble floats at y ~GROUND_Y - 330
+      var bubX = gnX3 + 80;
+      var bubY = GROUND_Y - 320;
+      // Bubble chain (three small circles ascending)
+      for (var bb = 0; bb < 3; bb++) {
+        var bbr = 4 + bb * 2;
+        var bby = bubY + 36 - bb * 14;
+        ctx.beginPath(); ctx.arc(bubX, bby, bbr, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(180,140,40,0.55)'; ctx.lineWidth = 1; ctx.stroke();
       }
-      for(var pi=0;pi<12;pi++){
-        G.art.drawPetal(ctx,cx+Math.cos(pi/12*Math.PI*2+t*0.3)*200,cy+100+Math.sin(pi/12*Math.PI*2+t*0.5)*60,t+pi);
+      // Main bubble oval
+      ctx.beginPath(); ctx.ellipse(bubX, bubY - 10, 42, 34, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,245,0.78)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(200,160,40,0.65)'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Pulsing modak inside thought bubble (small scale)
+      var bPulse = 0.9 + Math.sin(t * 2.8) * 0.1;
+      ctx.save();
+      ctx.translate(bubX, bubY - 12);
+      ctx.scale(bPulse * 1.4, bPulse * 1.4);
+      G.art.drawModak(ctx, 0, 0, 1);
+      ctx.restore();
+
+      // 9. Edge sparkles ONLY (constrained far from Ganesha's face)
+      //    Ganesha face is roughly between x=gnX3-60 and x=gnX3+60, y<GROUND_Y-180
+      //    So sparkles go to left edge (<gnX3-120) or right edge (>gnX3+120)
+      for (var sk = 0; sk < 10; sk++) {
+        var skPhase = (t * 0.5 + sk * 0.1) % 1;
+        var skA = (1 - skPhase) * 0.65;
+        if (skA < 0.05) continue;
+        // Left-side sparkles
+        var skxL = 20 + sk * 28;
+        if (skxL < gnX3 - 130) {
+          var skyL = GROUND_Y - 80 - skPhase * 260;
+          if (skyL > 50) {
+            ctx.beginPath(); ctx.arc(skxL, skyL, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,230,80,' + skA + ')'; ctx.fill();
+          }
+        }
+        // Right-side sparkles (table area)
+        var skxR = tableX - 60 + sk * 40;
+        if (skxR > gnX3 + 130 && skxR < G.W - 20) {
+          var skyR = GROUND_Y - 80 - skPhase * 200;
+          if (skyR > 50) {
+            ctx.beginPath(); ctx.arc(skxR, skyR, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,220,100,' + skA + ')'; ctx.fill();
+          }
+        }
       }
-      G.art.drawDevotee(ctx,cx-220,cy+200,t,{scale:0.8,phase:0,handsUp:true,color:G.COL.maroon});
-      G.art.drawDevotee(ctx,cx+220,cy+200,t,{scale:0.8,phase:1.4,handsUp:true,color:G.COL.green});
     }
 
     // ── Slide number (top-left, small) ────────────────────────────────
