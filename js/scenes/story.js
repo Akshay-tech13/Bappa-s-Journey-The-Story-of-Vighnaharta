@@ -98,10 +98,102 @@ G.scenes['story'] = {
 
   draw: function (ctx) {
     var slide = _STORY_SLIDES[_storySlide];
+    var t = _storyTotalT;
+    var cx = G.W / 2;
+    var cy = G.H / 2 - 80;   // illustration centre
 
     // ── Background ────────────────────────────────────────────────────
     ctx.fillStyle = slide.bg;
     ctx.fillRect(0, 0, G.W, G.H);
+
+    // ── Slide illustrations ───────────────────────────────────────────
+    if (_storySlide === 0) {
+      // Mountain silhouette behind Parvati
+      ctx.save();
+      ctx.translate(cx, cy + 80);
+      ctx.beginPath();
+      ctx.moveTo(-220,0); ctx.lineTo(-60,-200); ctx.lineTo(60,-200); ctx.lineTo(220,0);
+      ctx.closePath(); ctx.fillStyle = '#3A3060'; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-30,-200); ctx.lineTo(0,-240); ctx.lineTo(30,-200);
+      ctx.fillStyle = '#D0D8FF'; ctx.fill();
+      ctx.restore();
+      // Parvati shaping the boy
+      G.art.drawParvati(ctx, cx - 80, cy + 160, t, { scale: 1.1 });
+      // Glowing sandalwood form
+      var grd0 = ctx.createRadialGradient(cx+40, cy+70, 4, cx+40, cy+70, 32);
+      grd0.addColorStop(0, 'rgba(255,220,100,0.9)');
+      grd0.addColorStop(1, 'rgba(255,180,50,0)');
+      ctx.beginPath(); ctx.arc(cx+40, cy+70, 32, 0, Math.PI*2);
+      ctx.fillStyle = grd0; ctx.fill();
+      G.art.ellipse(ctx, cx+40, cy+80, 16, 20, '#D2A679');
+      // Twinkling stars
+      var ss = [0.12,0.28,0.45,0.61,0.73,0.88,0.05,0.34,0.56,0.79];
+      for (var si=0;si<ss.length;si++){
+        G.art.circle(ctx,(ss[si]*1.3%1)*G.W, ss[si]*(cy+20),
+          1.5+(si%3)*0.8,'rgba(255,255,220,'+(0.4+Math.sin(t*(1.5+si*0.2)+si)*0.3)+')');
+      }
+
+    } else if (_storySlide === 1) {
+      // Archway door
+      ctx.save(); ctx.translate(cx, cy+60);
+      G.art.roundRect(ctx,-50,-120,100,120,8,'#4A2A0A');
+      G.art.roundRect(ctx,-44,-114,88,112,6,'#6B3A18');
+      ctx.beginPath(); ctx.arc(0,-120,50,Math.PI,0); ctx.fillStyle='#4A2A0A'; ctx.fill();
+      ctx.beginPath(); ctx.arc(0,-120,44,Math.PI,0); ctx.fillStyle='#6B3A18'; ctx.fill();
+      G.art.circle(ctx, 24,-70, 5, G.COL.gold);
+      ctx.restore();
+      // Ganesha guarding
+      G.art.drawGanesha(ctx, cx, cy+180, t, { state:'idle', scale:1.2 });
+      // Diyas either side
+      G.art.drawDiya(ctx, cx-140, cy+120, true, t);
+      G.art.drawDiya(ctx, cx+140, cy+120, true, t);
+      // Stars
+      var ss2=[0.12,0.28,0.45,0.61,0.73,0.88,0.05,0.34,0.56,0.79];
+      for(var si2=0;si2<ss2.length;si2++){
+        G.art.circle(ctx,(ss2[si2]*1.3%1)*G.W,ss2[si2]*(cy+20),
+          1.5+(si2%3)*0.8,'rgba(255,255,220,'+(0.4+Math.sin(t*(1.5+si2*0.2)+si2)*0.3)+')');
+      }
+
+    } else if (_storySlide === 2) {
+      // Shiva + golden blessing glow
+      G.art.drawShiva(ctx, cx-100, cy+180, t, { scale:1.1 });
+      var pulse = 0.55 + Math.sin(t*2.5)*0.2;
+      var grd2 = ctx.createRadialGradient(cx+60,cy+80,8,cx+60,cy+80,90);
+      grd2.addColorStop(0,'rgba(255,220,60,'+pulse+')');
+      grd2.addColorStop(0.5,'rgba(255,160,30,'+(pulse*0.5)+')');
+      grd2.addColorStop(1,'rgba(255,160,30,0)');
+      ctx.beginPath(); ctx.arc(cx+60,cy+80,90,0,Math.PI*2);
+      ctx.fillStyle=grd2; ctx.fill();
+      // Elephant-head silhouette in glow
+      ctx.save(); ctx.translate(cx+60,cy+80); ctx.globalAlpha=pulse*0.75;
+      G.art.ellipse(ctx,0,-10,30,28,G.COL.gold);
+      G.art.ellipse(ctx,32,-8,16,20,G.COL.gold);
+      G.art.ellipse(ctx,-32,-8,16,20,G.COL.gold);
+      ctx.beginPath(); ctx.moveTo(6,10);
+      ctx.bezierCurveTo(20,20,24,30,18,36); ctx.bezierCurveTo(14,40,6,38,4,34);
+      ctx.strokeStyle=G.COL.gold; ctx.lineWidth=8; ctx.lineCap='round'; ctx.stroke();
+      ctx.restore();
+      // Orbiting light dots
+      for(var oi=0;oi<8;oi++){
+        var oa=(oi/8)*Math.PI*2+t*0.8;
+        var or=55+Math.sin(t*1.5+oi)*12;
+        G.art.circle(ctx,cx+60+Math.cos(oa)*or,cy+80+Math.sin(oa)*or*0.5,3,'rgba(255,230,100,0.7)');
+      }
+
+    } else if (_storySlide === 3) {
+      // Ganesha celebrating with floating modaks
+      G.art.drawGanesha(ctx, cx, cy+180, t, { state:'celebrate', scale:1.3 });
+      var mpos=[[-160,-20,0],[140,-40,1.2],[-100,-90,2.4],[100,-80,0.6],[0,-120,1.8]];
+      for(var mi=0;mi<mpos.length;mi++){
+        G.art.drawModak(ctx,cx+mpos[mi][0],cy+180+mpos[mi][1]+Math.sin(t*2+mpos[mi][2])*8,1.2);
+      }
+      for(var pi=0;pi<12;pi++){
+        G.art.drawPetal(ctx,cx+Math.cos(pi/12*Math.PI*2+t*0.3)*200,cy+80+Math.sin(pi/12*Math.PI*2+t*0.5)*60,t+pi);
+      }
+      G.art.drawDevotee(ctx,cx-220,cy+180,t,{scale:0.8,phase:0,handsUp:true,color:G.COL.maroon});
+      G.art.drawDevotee(ctx,cx+220,cy+180,t,{scale:0.8,phase:1.4,handsUp:true,color:G.COL.green});
+    }
 
     // ── Slide number (top-left, small) ────────────────────────────────
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
