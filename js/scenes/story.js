@@ -100,42 +100,98 @@ G.scenes['story'] = {
     var slide = _STORY_SLIDES[_storySlide];
     var t = _storyTotalT;
     var cx = G.W / 2;
-    var cy = 260;   // fixed illustration centre — characters draw above text panel
+
+    // ── Illustration safe area: y 40..540, ground line y=520 ─────────
+    var GROUND_Y = 520;
+    var cy = 260;   // legacy centre-Y used by slides 1-3 (unchanged)
 
     // ── Background ────────────────────────────────────────────────────
+    if (_storySlide === 0) {
+      // Slide 0 has its own full-sky background; others use the slide.bg colour
+      G.scenery.drawSky(ctx, 0, GROUND_Y, t);
+    } else {
+      ctx.fillStyle = slide.bg;
+      ctx.fillRect(0, 0, G.W, G.H);
+    }
+    // Ground strip below horizon
     ctx.fillStyle = slide.bg;
-    ctx.fillRect(0, 0, G.W, G.H);
+    ctx.fillRect(0, GROUND_Y, G.W, G.H - GROUND_Y);
 
     // ── Slide illustrations ───────────────────────────────────────────
     if (_storySlide === 0) {
-      // Mountain silhouette — brighter purple so visible on dark bg
+      // ── SLIDE 0: Mount Kailash — Parvati creates the boy ─────────────
+      // Stars + moon
+      G.scenery.drawStars(ctx, 0, GROUND_Y, t);
+      G.scenery.drawMoon(ctx, 160, 90, 44, t);
+
+      // Layered mountain range with snow cap + fog
+      G.scenery.drawMountainRange(ctx, GROUND_Y, t);
+
+      // Soft halo over the tallest peak (centre ~x=640)
+      G.scenery.drawGlow(ctx, 640, GROUND_Y - 310, 120, '#A090FF', 0.18);
+
+      // Kailash Home — left side on a stone ledge
+      G.scenery.drawKailashHome(ctx, 220, GROUND_Y, t);
+
+      // Slow camera drift: scale 1.0 → 1.04 over 4 s then back
+      var drift = 1.0 + Math.sin(t * 0.8) * 0.02;
       ctx.save();
-      ctx.translate(cx, cy + 60);
+      ctx.translate(cx, GROUND_Y);
+      ctx.scale(drift, drift);
+      ctx.translate(-cx, -GROUND_Y);
+
+      // Stone slab with paste bowl — beside Parvati
+      var slabX = cx - 20;
+      var slabY = GROUND_Y;
+      // Slab
       ctx.beginPath();
-      ctx.moveTo(-240,0); ctx.lineTo(-70,-180); ctx.lineTo(70,-180); ctx.lineTo(240,0);
-      ctx.closePath(); ctx.fillStyle = '#6050A0'; ctx.fill();
+      ctx.ellipse(slabX, slabY - 6, 40, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#7A6A50'; ctx.fill();
+      ctx.strokeStyle = '#3A2A10'; ctx.lineWidth = 1.2; ctx.stroke();
+      // Bowl of sandalwood paste
       ctx.beginPath();
-      ctx.moveTo(-35,-180); ctx.lineTo(0,-220); ctx.lineTo(35,-180);
-      ctx.fillStyle = '#E0E8FF'; ctx.fill();
-      ctx.restore();
-      // Parvati — moved right so mountain and character don't overlap
-      G.art.drawParvati(ctx, cx + 80, cy + 200, t, { scale: 1.2 });
-      // Glowing sandalwood form
-      var grd0 = ctx.createRadialGradient(cx+40, cy+70, 4, cx+40, cy+70, 32);
-      grd0.addColorStop(0, 'rgba(255,220,100,0.9)');
-      grd0.addColorStop(1, 'rgba(255,180,50,0)');
-      ctx.beginPath(); ctx.arc(cx+40, cy+70, 32, 0, Math.PI*2);
-      ctx.fillStyle = grd0; ctx.fill();
-      G.art.ellipse(ctx, cx+40, cy+80, 16, 20, '#D2A679');
-      // Twinkling stars
-      var ss = [0.12,0.28,0.45,0.61,0.73,0.88,0.05,0.34,0.56,0.79];
-      for (var si=0;si<ss.length;si++){
-        G.art.circle(ctx,(ss[si]*1.3%1)*G.W, ss[si]*(cy+20),
-          1.5+(si%3)*0.8,'rgba(255,255,220,'+(0.4+Math.sin(t*(1.5+si*0.2)+si)*0.3)+')');
+      ctx.ellipse(slabX, slabY - 14, 14, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#C07030'; ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(slabX, slabY - 16, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#D2A679'; ctx.fill();
+
+      // Parvati — centre-right, big (scale 2.4 ≈ 396 px tall)
+      G.art.drawParvati(ctx, cx + 200, GROUND_Y, t, { scale: 2.4, pose: 'idle' });
+
+      // Boy forming animation — build cycles 0→1 over 3 s, then stays at 1
+      var build = Math.min(1, _storySlideT / 3.0);
+      // Position: just in front of Parvati and the slab
+      var boyX = slabX + 30;
+      var boyY = GROUND_Y;
+      if (build < 1) {
+        G.art.drawBoy(ctx, boyX, boyY, t, { state: 'forming', scale: 2.7, build: build });
+      } else {
+        // Fully formed boy — add "breath of life" glow that expands then fades
+        var lifeT   = _storySlideT - 3.0;
+        var lifeGlow = Math.min(1, lifeT * 0.8) * Math.max(0, 1 - lifeT * 0.25);
+        if (lifeGlow > 0) {
+          G.scenery.drawGlow(ctx, boyX, boyY - 140, 100 + lifeT * 20, '#FFD86B', lifeGlow * 0.6);
+        }
+        G.art.drawBoy(ctx, boyX, boyY, t, { state: 'idle', scale: 2.7 });
+      }
+
+      ctx.restore();  // end camera drift
+
+      // Tap-hint — white 70% pulsing, above text panel
+      if (_storySlideT > 1.5) {
+        var hintA = Math.min(0.70, (_storySlideT - 1.5) / 0.5) * (0.6 + Math.sin(t * 2.2) * 0.15);
+        ctx.save();
+        ctx.globalAlpha = hintA;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 18px -apple-system,sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('Tap to continue ›', G.W / 2, GROUND_Y + 28);
+        ctx.restore();
       }
 
     } else if (_storySlide === 1) {
-      // Archway door
+      // ── SLIDE 1: Archway door — Ganesha guarding ──────────────────
       ctx.save(); ctx.translate(cx, cy+60);
       G.art.roundRect(ctx,-50,-120,100,120,8,'#4A2A0A');
       G.art.roundRect(ctx,-44,-114,88,112,6,'#6B3A18');

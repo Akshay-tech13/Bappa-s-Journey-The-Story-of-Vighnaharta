@@ -114,7 +114,7 @@
     },
 
     draw: function (ctx) {
-      // ── Background gradient (warm dawn sky) ────────────────────────
+      // ── Background: warm dark-brown gradient ───────────────────────
       var grad = ctx.createLinearGradient(0, 0, 0, G.H);
       grad.addColorStop(0,   '#2C1A0E');
       grad.addColorStop(0.5, '#4A2810');
@@ -122,40 +122,82 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, G.W, G.H);
 
-      // ── Drifting petals ────────────────────────────────────────────
+      // ── Layout constants ───────────────────────────────────────────
+      // Ganesha: left third.  At scale 2.0 he is ~220px tall.
+      // Feet land at titleGndY so crown is at titleGndY - 220.
+      var ganX      = G.W * 0.22;          // left-third centre
+      var titleGndY = G.H * 0.78;          // ground line for Ganesha
+      var ganScale  = 2.0;
+      var crownY    = titleGndY - 220;     // approx crown y at scale 2.0
+
+      // Right-side text region: start 60 px right of ganX + half-body
+      var textCX = G.W * 0.62;            // centre of title text
+
+      // ── Saffron radial glow behind Ganesha ────────────────────────
+      G.scenery.drawGlow(ctx, ganX, titleGndY - 110, 260, '#FFB347', 0.35);
+
+      // ── Faint slowly rotating mandala ─────────────────────────────
+      G.scenery.drawMandala(ctx, ganX, titleGndY - 110, 200, t, 0.13);
+
+      // ── Lotus pedestal under Ganesha ──────────────────────────────
+      ctx.save();
+      ctx.translate(ganX, titleGndY);
+      // Pedestal base ellipse (stone grey)
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 56, 14, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#7A6040'; ctx.fill();
+      ctx.strokeStyle = '#4A3010'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Lotus petal row around rim
+      for (var lp = 0; lp < 8; lp++) {
+        var la = (lp / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.ellipse(Math.cos(la) * 44, Math.sin(la) * 10 - 4, 10, 7, la, 0, Math.PI * 2);
+        ctx.fillStyle = (lp % 2 === 0) ? '#F49AC2' : '#F28C28'; ctx.fill();
+        ctx.strokeStyle = '#8B1A1A'; ctx.lineWidth = 0.8; ctx.stroke();
+      }
+      // Central disc
+      ctx.beginPath(); ctx.ellipse(0, -2, 30, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFEEAA'; ctx.fill();
+      ctx.restore();
+
+      // ── Ganesha — left third, scale 2x ────────────────────────────
+      G.art.drawGanesha(ctx, ganX, titleGndY, t, { state: 'idle', scale: ganScale });
+
+      // ── Drifting petals (behind and in front of text) ──────────────
       petals.forEach(function (p) {
         G.art.drawPetal(ctx, p.x, p.y, t + p.phase);
       });
 
-      // ── Ganesha idle, left of centre ───────────────────────────────
-      G.art.drawGanesha(ctx, G.W / 2 - 160, G.H / 2 + 80, t, { state: 'idle', scale: 1.6 });
+      // ── Title text — right side, well clear of crown ───────────────
+      // Guarantee at least 40 px gap: title top = crownY - 40
+      var titleTopY = crownY - 40;   // safe area top for text
+      // Clamp so title doesn't go above y=60
+      if (titleTopY < 60) titleTopY = 60;
 
-      // ── Title text ─────────────────────────────────────────────────
-      // Large title
       ctx.save();
       ctx.shadowColor = G.COL.gold;
-      ctx.shadowBlur  = 18;
-      G.art.centeredText(ctx, G.GAME_TITLE,    G.W / 2 + 80, G.H / 2 - 80, 54, G.COL.marigold);
+      ctx.shadowBlur  = 22;
+      G.art.centeredText(ctx, G.GAME_TITLE, textCX, titleTopY, 54, G.COL.marigold);
       ctx.restore();
-      G.art.centeredText(ctx, G.GAME_SUBTITLE, G.W / 2 + 80, G.H / 2 - 20, 22, G.COL.gold);
+      G.art.centeredText(ctx, G.GAME_SUBTITLE, textCX, titleTopY + 62, 22, G.COL.gold);
 
       // How to play hint
       G.art.centeredText(ctx,
         'Collect modaks  •  Light diyas  •  Earn blessings',
-        G.W / 2 + 80, G.H / 2 + 30, 18, G.COL.cream);
+        textCX, titleTopY + 104, 18, G.COL.cream);
 
-      // ── Play button ────────────────────────────────────────────────
-      // Pulse scale for the play button
-      var pulse = 1 + Math.sin(t * 2.5) * 0.03;
+      // ── Play button — gently pulsing ───────────────────────────────
+      var pulse  = 1 + Math.sin(t * 2.5) * 0.035;
+      var btnY   = titleTopY + 168;
       ctx.save();
-      ctx.translate(G.W / 2 + 80, G.H / 2 + 110);
+      ctx.translate(textCX, btnY);
       ctx.scale(pulse, pulse);
-      ctx.translate(-(G.W / 2 + 80), -(G.H / 2 + 110));
-      playRect = G.ui.drawButton(ctx, '▶  Play', G.W / 2 + 80, G.H / 2 + 110, 200, 60,
+      ctx.translate(-textCX, -btnY);
+      playRect = G.ui.drawButton(ctx, '▶  Play', textCX, btnY, 210, 62,
         { color: G.COL.saffron, fontSize: 26, radius: 16 });
       ctx.restore();
 
-      // ── Mute button (top-right, same position as the HTML button) ──
+      // ── Mute button ────────────────────────────────────────────────
       muteRect = G.ui.drawButton(ctx, G.audio.isMuted() ? '🔇' : '🔊',
         G.W - 36, 36, 54, 54,
         { color: 'rgba(0,0,0,0.45)', fontSize: 20, radius: 27 });
