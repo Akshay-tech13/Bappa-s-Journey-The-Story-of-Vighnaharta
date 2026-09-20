@@ -683,43 +683,283 @@ G.art = (function () {
     ctx.restore();
   }
 
-  // ╔══════════════════════════════════════════════════════════════╗
-  // ║  MUSHAK the Mouse                                           ║
-  // ╚══════════════════════════════════════════════════════════════╝
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  MUSHAK THE MOUSE — redrawn chubby loyal children's-book style  ║
+  // ║  Signature: drawMushak(ctx, x, y, t, opts)  (UNCHANGED)         ║
+  // ║  opts = { scale, dir, pose }                                     ║
+  // ║    scale : number (default 1).  At scale 1 ≈ 45 px tall.        ║
+  // ║    dir   : 1|-1 OR 'right'|'left'|'up' (back rump view)         ║
+  // ║    pose  : 'idle'|'run'|'wobble'|'peek'                         ║
+  // ║  (x,y) = centre-bottom between feet.                            ║
+  // ╚══════════════════════════════════════════════════════════════════╝
+
+  // ── helper: warm outline stroke ──────────────────────────────────────
+  function _mskOutline(ctx, w) {
+    ctx.strokeStyle = C.outline;
+    ctx.lineWidth   = w || 1.5;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+  }
+
+  // ── helper: chubby side body (torso + legs) ───────────────────────────
+  // pose = 'run' animates legs; 'wobble' shakes body; default = still.
+  function _mskBody(ctx, pose, t) {
+    var legCycle = (pose === 'run') ? Math.sin(t * 10) : 0;
+
+    // Under-body shade (darker ellipse behind body)
+    ctx.beginPath();
+    ctx.ellipse(0, -12, 18, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskShade; ctx.fill();
+
+    // Main body oval — warm grey-brown
+    ctx.beginPath();
+    ctx.ellipse(0, -16, 17, 11, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskBody; ctx.fill();
+    _mskOutline(ctx, 1.4);
+
+    // Cream belly patch
+    ctx.beginPath();
+    ctx.ellipse(1, -14, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskBelly; ctx.fill();
+
+    // Back highlight
+    ctx.beginPath();
+    ctx.ellipse(-3, -20, 7, 4, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskHi; ctx.globalAlpha = 0.45; ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Legs — two front, two back, animated when running
+    var legPairs = [
+      { x: -9, leanDir: -1 },   // front-left
+      {  x: 9, leanDir:  1 },   // front-right
+    ];
+    for (var li = 0; li < legPairs.length; li++) {
+      var lx   = legPairs[li].x;
+      var lean = legPairs[li].leanDir * legCycle * 0.28;
+      ctx.save();
+      ctx.translate(lx, -6);
+      ctx.rotate(lean);
+      // Short stubby leg
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 4, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.mskBody; ctx.fill();
+      _mskOutline(ctx, 1);
+      // Tiny foot
+      ctx.beginPath();
+      ctx.ellipse(lean * 8, 5, 5, 3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.mskBody; ctx.fill();
+      _mskOutline(ctx, 1);
+      ctx.restore();
+    }
+
+    // Small marigold garland around neck / body front
+    _mskGarland(ctx);
+  }
+
+  // ── helper: head (attached to body on the right side) ────────────────
+  // headNose: 0 = still, 1 = twitched (nose twitch animation).
+  function _mskHead(ctx, t, pose) {
+    // Nose twitch timing: subtle every ~2 s
+    var twitch   = Math.abs(Math.sin(t * 1.6)) < 0.04 ? 1 : 0;
+    var noseX    = (pose === 'peek') ? 0 : 14;
+    var noseY    = -19;
+    var headX    = (pose === 'peek') ? 0 : 14;
+
+    // Head oval
+    ctx.beginPath();
+    ctx.ellipse(headX, -22, 11, 10, 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskBody; ctx.fill();
+    _mskOutline(ctx, 1.4);
+    // Head highlight
+    ctx.beginPath();
+    ctx.ellipse(headX - 2, -26, 5, 4, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskHi; ctx.globalAlpha = 0.50; ctx.fill();
+    ctx.globalAlpha = 1;
+    // Chin shade
+    ctx.beginPath();
+    ctx.ellipse(headX + 2, -18, 4, 3, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskShade; ctx.globalAlpha = 0.30; ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Ear (big round, pink inner)
+    circle(ctx, headX + 4, -31, 7, C.mskBody);
+    _mskOutline(ctx, 1.2);
+    circle(ctx, headX + 4, -31, 4.5, C.innerEar);  // reuse innerEar from Ganesha palette
+
+    // Eye — black bead with catchlight
+    circle(ctx, headX + 3, -23, 2.8, '#1A0800');
+    _mskOutline(ctx, 0.8);
+    circle(ctx, headX + 4, -24, 1,   C.white);   // catchlight
+
+    // Nose — small pink oval, offset on twitch
+    ctx.beginPath();
+    ctx.ellipse(noseX + 10 + twitch, noseY, 2.5, 2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskNose; ctx.fill();
+    _mskOutline(ctx, 0.8);
+
+    // Whiskers — 3 per side, thin lines
+    ctx.strokeStyle = 'rgba(60,20,0,0.45)'; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+    for (var wh = -1; wh <= 1; wh++) {
+      var wy = noseY + wh * 2.5;
+      // Right whiskers (toward nose tip)
+      ctx.beginPath();
+      ctx.moveTo(noseX + 10 + twitch, wy);
+      ctx.lineTo(noseX + 20 + twitch, wy + wh * 1.5);
+      ctx.stroke();
+      // Left whiskers (back toward ear)
+      ctx.beginPath();
+      ctx.moveTo(noseX + 8 + twitch, wy);
+      ctx.lineTo(noseX - 2, wy + wh * 1.5);
+      ctx.stroke();
+    }
+  }
+
+  // ── helper: curling tail ──────────────────────────────────────────────
+  // tailSpin: 0 = gentle curl, nonzero = swirling (run pose)
+  function _mskTail(ctx, t, pose) {
+    var spin = (pose === 'run') ? Math.sin(t * 8) * 0.4 : 0;
+    ctx.save();
+    ctx.translate(-16, -12);
+    ctx.rotate(spin);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-10, -4, -14, 4, -8, 10);
+    ctx.bezierCurveTo(-4, 14, 2, 12, 2, 8);
+    ctx.strokeStyle = C.mskTail; ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round'; ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── helper: small saddle cloth on back ────────────────────────────────
+  // Visible when Ganesha is riding (used by drawGaneshaOnMushak).
+  function _mskSaddle(ctx) {
+    ctx.save();
+    ctx.translate(0, -22);
+    // Red cloth base
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 12, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#CC3030'; ctx.fill();
+    _mskOutline(ctx, 1);
+    // Gold border arc on top edge
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 12, 7, 0, Math.PI, Math.PI * 2);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2.5; ctx.stroke();
+    // Gold tassel dots
+    for (var td = -8; td <= 8; td += 8) {
+      circle(ctx, td, 6, 2, C.goldLight);
+    }
+    ctx.restore();
+  }
+
+  // ── helper: marigold garland around neck ─────────────────────────────
+  function _mskGarland(ctx) {
+    // A small looping arc at the neck/chest
+    ctx.beginPath();
+    ctx.arc(6, -16, 8, Math.PI * 0.8, Math.PI * 2.2);
+    ctx.strokeStyle = C.marigold; ctx.lineWidth = 3; ctx.stroke();
+    // Small flower dots
+    ctx.fillStyle = C.marigold;
+    var garlandAngles = [Math.PI * 0.9, Math.PI * 1.1, Math.PI * 1.3, Math.PI * 1.55, Math.PI * 1.8, Math.PI * 2.1];
+    for (var gf = 0; gf < garlandAngles.length; gf++) {
+      var ga = garlandAngles[gf];
+      circle(ctx, 6 + Math.cos(ga) * 8, -16 + Math.sin(ga) * 8, 2, C.saffron);
+    }
+  }
+
+  // ── helper: back-view body (rump + tail + back ears) ─────────────────
+  // Used by both the 'up' dir of drawMushak and by drawGaneshaOnMushak.
+  function _mskBack(ctx, t, pose, hasSaddle) {
+    var legCycle = (pose === 'run') ? Math.sin(t * 10) : 0;
+
+    // Under shadow on rump
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 20, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskShade; ctx.fill();
+
+    // Main rump oval
+    ctx.beginPath();
+    ctx.ellipse(0, -14, 19, 12, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskBody; ctx.fill();
+    _mskOutline(ctx, 1.4);
+
+    // Rump highlight
+    ctx.beginPath();
+    ctx.ellipse(-4, -18, 8, 6, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = C.mskHi; ctx.globalAlpha = 0.45; ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Saddle cloth (only when Ganesha is seated on top)
+    if (hasSaddle) { _mskSaddle(ctx); }
+
+    // Two back ears — round, pink inner
+    for (var be = -1; be <= 1; be += 2) {
+      circle(ctx, be * 12, -24, 7, C.mskBody);
+      _mskOutline(ctx, 1.2);
+      circle(ctx, be * 12, -24, 4.5, C.innerEar);
+    }
+
+    // Back feet — two oval bumps
+    var backLean = legCycle * 0.2;
+    for (var bf = -1; bf <= 1; bf += 2) {
+      ctx.save();
+      ctx.translate(bf * 10, -2);
+      ctx.rotate(bf * backLean);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.mskBody; ctx.fill();
+      _mskOutline(ctx, 1);
+      ctx.restore();
+    }
+
+    // Tail curling upward/right when running (more visible from back)
+    var tailSpin = (pose === 'run') ? Math.sin(t * 8) * 0.5 : 0;
+    ctx.save();
+    ctx.translate(14, -14);
+    ctx.rotate(tailSpin);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(8, -4, 12, 4, 6, 10);
+    ctx.bezierCurveTo(2, 14, -2, 12, 0, 8);
+    ctx.strokeStyle = C.mskTail; ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round'; ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Main drawMushak — orchestrates helpers ────────────────────────────
   function drawMushak(ctx, x, y, t, opts) {
     opts = opts || {};
-    var sc  = opts.scale || 1;
-    var dir = opts.dir   || 1;
-    var bob = Math.sin(t * 3) * 1.5;
+    var sc      = opts.scale || 1;
+    // Accept numeric dir (legacy 1/-1) or string
+    var dirRaw  = opts.dir !== undefined ? opts.dir : 1;
+    var isBack  = (dirRaw === 'up');
+    var flipX   = (dirRaw === -1 || dirRaw === 'left') ? -1 : 1;
+    var pose    = opts.pose || 'idle';
 
-    ovalShadow(ctx, x, y, 18 * sc, 5 * sc);
+    // Wobble: small side-shake, never a fall
+    var wobble  = (pose === 'wobble') ? Math.sin(t * 18) * 4 : 0;
+    // Idle/run bob
+    var bobAmt  = (pose === 'run') ? 3 : 1.5;
+    var bob     = Math.sin(t * (pose === 'run' ? 8 : 3)) * bobAmt;
+
+    // Peek pose: only head peeking — smaller shadow
+    var shadowRx = isBack ? 20 * sc : (pose === 'peek' ? 10 * sc : 18 * sc);
+    ovalShadow(ctx, x + wobble, y, shadowRx, 5 * sc);
+
     ctx.save();
-    ctx.translate(x, y + bob);
-    ctx.scale(dir * sc, sc);
+    ctx.translate(x + wobble, y + bob * sc);
+    ctx.scale(flipX * sc, sc);
 
-    // Body
-    ellipse(ctx, 0, -14, 16, 12, '#C8A8A0');
-    // Head
-    ellipse(ctx, 14, -20, 11, 9, '#C8A8A0');
-    // Ears
-    circle(ctx, 20, -28, 6, '#C8A8A0');
-    circle(ctx, 20, -28, 3.5, '#E8C0C0');
-    // Eye
-    circle(ctx, 18, -22, 2.5, '#2A1A1A');
-    circle(ctx, 19, -23, 1,   C.white);
-    // Nose tip
-    circle(ctx, 24, -19, 2, '#D08080');
-    // Tail
-    ctx.beginPath();
-    ctx.moveTo(-14, -10);
-    ctx.bezierCurveTo(-24, -6, -26, 2, -18, 4);
-    ctx.strokeStyle = '#A08080';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    // Legs
-    for (var i = -1; i <= 1; i += 2) {
-      ellipse(ctx, i * 8, -4, 4, 3, '#B89890');
+    if (isBack) {
+      _mskBack(ctx, t, pose, false);
+    } else if (pose === 'peek') {
+      // Only show head + ear peeking over an edge
+      _mskHead(ctx, t, 'peek');
+    } else {
+      // Full side view: tail → body → head
+      _mskTail(ctx, t, pose);
+      _mskBody(ctx, pose, t);
+      _mskHead(ctx, t, pose);
     }
 
     ctx.restore();
@@ -2065,47 +2305,26 @@ G.art = (function () {
   // ║  GANESHA ON MUSHAK — Level 2 runner back view                   ║
   // ║  drawGaneshaOnMushak(ctx, x, y, t, opts)                        ║
   // ║  x,y = bottom centre of Mushak. opts = { scale, wobble }        ║
+  // ║  Now uses _mskBack helper so Mushak always looks consistent.     ║
   // ╚══════════════════════════════════════════════════════════════════╝
   function drawGaneshaOnMushak(ctx, x, y, t, opts) {
     opts = opts || {};
-    var sc = opts.scale || 1;
+    var sc     = opts.scale || 1;
     var wobble = opts.wobble || 0;  // hit wobble 0-1
 
     ovalShadow(ctx, x, y, 30 * sc, 8 * sc);
 
-    var bob     = Math.sin(t * 4) * (1.5 + wobble * 3);
-    var wTilt   = Math.sin(t * 6) * wobble * 0.15;  // wobble tilt
+    var bob   = Math.sin(t * 4) * (1.5 + wobble * 3);
+    var wTilt = Math.sin(t * 6) * wobble * 0.15;  // wobble tilt
 
     ctx.save();
     ctx.translate(x, y + bob);
     ctx.rotate(wTilt);
     ctx.scale(sc, sc);
 
-    // ── Mushak (simplified back view, same style as drawMushak) ──────
-    // Body — grey-brown oval
-    ctx.beginPath();
-    ctx.ellipse(0, -14, 18, 12, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#C8A8A0'; ctx.fill();
-    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
-    // Rump highlight
-    ctx.beginPath();
-    ctx.ellipse(-4, -18, 8, 6, -0.3, 0, Math.PI * 2);
-    ctx.fillStyle = '#DCC0B8'; ctx.fill();
-    // Tail curling to the right
-    ctx.beginPath();
-    ctx.moveTo(14, -12);
-    ctx.bezierCurveTo(22, -8, 24, -2, 18, 2);
-    ctx.bezierCurveTo(14, 4, 12, 2, 14, -2);
-    ctx.strokeStyle = '#A08080'; ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round'; ctx.stroke();
-    // Back feet (two oval bumps)
-    ellipse(ctx, -10, -2, 6, 4, '#B89890');
-    ellipse(ctx,  10, -2, 6, 4, '#B89890');
-    // Two round back ears
-    circle(ctx, -12, -24, 7, '#C8A8A0');
-    circle(ctx,  12, -24, 7, '#C8A8A0');
-    circle(ctx, -12, -24, 4, '#E8C0C0');
-    circle(ctx,  12, -24, 4, '#E8C0C0');
+    // ── Mushak back view — uses shared helper with saddle ─────────────
+    var mPose = wobble > 0 ? 'wobble' : 'run';
+    _mskBack(ctx, t, mPose, true);  // true = draw saddle cloth
 
     // ── Ganesha seated on Mushak's back (back view) ───────────────────
     // Seat position is on top of Mushak (~-28 from ground)

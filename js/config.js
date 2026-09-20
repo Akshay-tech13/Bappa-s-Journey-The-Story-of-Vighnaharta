@@ -62,6 +62,14 @@ G.COL = {
   lotPink:    '#F49AC2',  // lotus petal pink
   lotGreen:   '#4E8B3F',  // lotus stem green
 
+  // ── Mushak palette ────────────────────────────────────────────────────
+  mskBody:    '#B9A79A',  // warm grey-brown body
+  mskShade:   '#9A8880',  // darker underside shade
+  mskHi:      '#D8CCCA',  // lighter back highlight
+  mskBelly:   '#F5EDE0',  // cream belly patch
+  mskNose:    '#E8908A',  // pink nose
+  mskTail:    '#A08878',  // tail pink-brown
+
   // ── Lord Shiva palette ────────────────────────────────────────────────
   shvSkin:      '#A9C7D6',  // light blue-grey skin
   shvSkinSh:    '#7FA3B8',  // darker skin shade

@@ -184,8 +184,8 @@
   var states  = ['idle', 'walk', 'celebrate'];
   var stateIdx= 0;
 
-  var PAGE    = 0;           // gallery page (0 = characters, 1 = props, 2 = Parvati, 3 = Shiva)
-  var PAGES   = 4;
+  var PAGE    = 0;           // gallery page (0=chars, 1=props, 2=Parvati, 3=Shiva, 4=Mushak)
+  var PAGES   = 5;
 
   // Button hit-areas (in logical px)
   var btnPrev = { x: 60,       y: G.H - 50, w: 100, h: 44 };
@@ -266,7 +266,7 @@
     // Row 2: other characters smaller
     var row2y = 590;
     var chars = [
-      { lbl: 'Mushak',      fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:1.2}); } },
+      { lbl: 'Mushak idle', fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:1.2,pose:'idle'}); } },
       { lbl: 'Parvati idle',fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:0.65,pose:'idle'}); } },
       { lbl: 'Lord Shiva',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:0.6,pose:'idle'}); } },
       { lbl: 'Kartikeya',   fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:1.0}); } },
@@ -376,6 +376,40 @@
     });
   }
 
+  // ── Page 4: Mushak — all poses and directions ─────────────────────────
+  function drawMushakPage(ctx) {
+    var sc = 1.8;  // Mushak is only 45px tall at scale 1; enlarge for visibility
+    // Row 1: all 4 poses (side view)
+    var row1Poses = [
+      { lbl: 'idle',    fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:sc, pose:'idle'}); } },
+      { lbl: 'run →',   fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:sc, pose:'run',  dir:1}); } },
+      { lbl: 'run ←',   fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:sc, pose:'run',  dir:-1}); } },
+      { lbl: 'wobble',  fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:sc, pose:'wobble'}); } },
+      { lbl: 'peek',    fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:sc, pose:'peek'}); } },
+      { lbl: 'back ↑',  fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:sc, dir:'up'}); } },
+    ];
+    var sp1   = G.W / (row1Poses.length + 1);
+    var row1y = 250;
+    G.art.centeredText(ctx, 'Mushak — all poses + directions', G.W/2, 90, 16, G.COL.cream);
+    row1Poses.forEach(function(p, i) {
+      cell(ctx, p.lbl, p.fn, sp1 * (i + 1), row1y);
+    });
+
+    // Row 2: scale checks + Ganesha on Mushak
+    var row2Poses = [
+      { lbl: 'scale 0.6',   fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:0.6, pose:'idle'}); } },
+      { lbl: 'scale 2.5',   fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:2.5, pose:'run'}); } },
+      { lbl: 'on Mushak',   fn: function(c,x,y){ G.art.drawGaneshaOnMushak(c,x,y,t,{scale:0.9}); } },
+      { lbl: 'on Mushak wobble', fn: function(c,x,y){ G.art.drawGaneshaOnMushak(c,x,y,t,{scale:0.9, wobble:0.8}); } },
+    ];
+    var sp2   = G.W / (row2Poses.length + 1);
+    var row2y = 570;
+    G.art.centeredText(ctx, 'Scale checks + Ganesha on Mushak', G.W/2, 420, 16, G.COL.cream);
+    row2Poses.forEach(function(p, i) {
+      cell(ctx, p.lbl, p.fn, sp2 * (i + 1), row2y);
+    });
+  }
+
   // ── Scene ─────────────────────────────────────────────────────────────
   G.scenes['artGallery'] = {
     init: function () {
@@ -398,14 +432,15 @@
       G.art.clearBg(ctx, '#2E1A00');
 
       // Title bar
-      var pgLabels = ['Characters', 'Props', 'Maa Parvati — all poses', 'Lord Shiva — all poses'];
+      var pgLabels = ['Characters', 'Props', 'Maa Parvati', 'Lord Shiva', 'Mushak — all poses'];
       G.art.centeredText(ctx, 'ART GALLERY — ' + pgLabels[PAGE], G.W/2, 36, 26, G.COL.marigold);
       G.art.centeredText(ctx, 'Page ' + (PAGE + 1) + ' / ' + PAGES, G.W/2, 64, 16, G.COL.gold);
 
       if      (PAGE === 0) drawCharPage(ctx);
       else if (PAGE === 1) drawPropPage(ctx);
       else if (PAGE === 2) drawParvatiPage(ctx);
-      else                 drawShivaPage(ctx);
+      else if (PAGE === 3) drawShivaPage(ctx);
+      else                 drawMushakPage(ctx);
 
       // ── Bottom buttons ─────────────────────────────────────────────
       function btn(b, label) {
