@@ -94,6 +94,7 @@
       t = 0;
       resetPetals();
       attachInput();
+      if (G.Music) G.Music.play('title');
     },
 
     update: function (dt) {

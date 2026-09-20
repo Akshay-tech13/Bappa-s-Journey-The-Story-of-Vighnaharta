@@ -62,6 +62,7 @@ G.scenes['recap'] = {
     _rcSkipRect = null;
     _rcIgnore   = performance.now() + 400;
     _rcSeedParticles();
+    if (G.Music) G.Music.play('recap');
 
     // Support ?debug=recap&slide=N
     var params = (typeof URLSearchParams !== 'undefined')

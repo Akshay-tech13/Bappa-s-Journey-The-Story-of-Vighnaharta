@@ -303,6 +303,7 @@ G.scenes['level1'] = {
 
     _l1attachClick();
     if (G.audio.startDhol) G.audio.startDhol();
+    if (G.Music) G.Music.play('level1');
   },
 
   update: function(dt){
@@ -343,7 +344,8 @@ G.scenes['level1'] = {
         _l1modaks[m].collected=true;
         _l1collected++;
         _l1sparkle(_l1modaks[m].x,_l1modaks[m].y);
-        G.audio.modakPop();
+        if (G.Music) G.Music.collectPop(_l1collected);
+        else G.audio.modakPop();
       }
     }
 
@@ -405,7 +407,7 @@ G.scenes['level1'] = {
       _l1spotted++;
       _l1phase='spotted'; _l1phaseT=0;
       _l1pSpotted=true;
-      G.audio.thud();
+      if (G.Music) G.Music.spottedChime(); else G.audio.thud();
     }
 
     // ── Update particles ──────────────────────────────────────────────────

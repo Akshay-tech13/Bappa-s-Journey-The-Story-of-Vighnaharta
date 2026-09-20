@@ -179,6 +179,96 @@
   // ?debug=test       → M0 test circle
   // ?debug=recap&slide=N (N=1-4) → jump straight to recap slide N
   // (default)         → real title screen
+  // ── ?debug=audio scene ────────────────────────────────────────────────
+  G.scenes['audioDebug'] = {
+    init: function () {
+      // nothing — the draw loop renders the UI
+    },
+    update: function () {},
+    draw: function (ctx) {
+      G.art.clearBg(ctx, '#1A0E05');
+      ctx.fillStyle = '#FFD700';
+      ctx.font      = 'bold 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Audio Debug — ?debug=audio', G.W / 2, 50);
+      ctx.font      = '18px sans-serif';
+      ctx.fillStyle = '#FFF8E7';
+      var moods = ['title','story','level1','level2','level3','recap','end','stop'];
+      var bw = 140, bh = 48, gap = 16;
+      var cols = 4;
+      var startX = G.W / 2 - (cols * (bw + gap)) / 2 + bw / 2;
+      for (var i = 0; i < moods.length; i++) {
+        var col = i % cols, row = Math.floor(i / cols);
+        var bx = startX + col * (bw + gap);
+        var by = 110 + row * (bh + gap);
+        ctx.fillStyle = '#3B2010';
+        ctx.beginPath();
+        ctx.roundRect(bx - bw/2, by, bw, bh, 8);
+        ctx.fill();
+        ctx.fillStyle = '#FFD700';
+        ctx.textAlign = 'center';
+        ctx.fillText(moods[i], bx, by + bh * 0.65);
+      }
+      // collectPop row
+      ctx.fillStyle = '#FFF8E7';
+      ctx.fillText('collectPop (click 1-5):', G.W / 2, 300);
+      for (var n = 1; n <= 5; n++) {
+        var px = G.W / 2 - 250 + (n - 1) * 120;
+        ctx.fillStyle = '#1A3B10';
+        ctx.beginPath();
+        ctx.roundRect(px - 44, 316, 88, 44, 8);
+        ctx.fill();
+        ctx.fillStyle = '#A8F080';
+        ctx.fillText('n=' + n, px, 344);
+      }
+      ctx.textAlign = 'left';
+    },
+    _onClick: function (e) {
+      G.audio.unlock();
+      var p = G.ui.toLogical(e);
+      // Mood buttons
+      var moods = ['title','story','level1','level2','level3','recap','end','stop'];
+      var bw = 140, bh = 48, gap = 16;
+      var cols = 4;
+      var startX = G.W / 2 - (cols * (bw + gap)) / 2 + bw / 2;
+      for (var i = 0; i < moods.length; i++) {
+        var col = i % cols, row = Math.floor(i / cols);
+        var bx = startX + col * (bw + gap);
+        var by = 110 + row * (bh + gap);
+        if (p.x > bx - bw/2 && p.x < bx + bw/2 && p.y > by && p.y < by + bh) {
+          if (moods[i] === 'stop') { if (G.Music) G.Music.stop(); }
+          else                     { if (G.Music) G.Music.play(moods[i]); }
+          return;
+        }
+      }
+      // collectPop buttons
+      for (var n = 1; n <= 5; n++) {
+        var px = G.W / 2 - 250 + (n - 1) * 120;
+        if (p.x > px - 44 && p.x < px + 44 && p.y > 316 && p.y < 360) {
+          if (G.Music) G.Music.collectPop(n);
+          return;
+        }
+      }
+    },
+    _handler: null,
+    destroy: function () {
+      if (this._handler) {
+        G.canvas.removeEventListener('click', this._handler);
+        G.canvas.removeEventListener('touchstart', this._handler);
+        this._handler = null;
+      }
+    },
+  };
+  // Attach click on artGallery-style lazy init
+  var _origAudioDebugInit = G.scenes['audioDebug'].init;
+  G.scenes['audioDebug'].init = function () {
+    _origAudioDebugInit.call(this);
+    var self = this;
+    this._handler = function (e) { self._onClick(e); };
+    G.canvas.addEventListener('click',      this._handler);
+    G.canvas.addEventListener('touchstart', this._handler, { passive: false });
+  };
+
   window.addEventListener('load', function () {
     lastTime = performance.now();
     requestAnimationFrame(loop);
@@ -188,6 +278,7 @@
     else if (dbg === 'test')   { G.sceneManager.goto('test'); }
     else if (dbg === 'recap')  { G.sceneManager.goto('recap'); }
     else if (dbg === 'level2') { G.sceneManager.goto('level2'); }
+    else if (dbg === 'audio')  { G.sceneManager.goto('audioDebug'); }
     else                       { G.sceneManager.goto('title'); }
   });
 

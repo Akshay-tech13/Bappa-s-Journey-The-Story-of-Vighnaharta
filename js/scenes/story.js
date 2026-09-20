@@ -4,13 +4,14 @@
 'use strict';
 
 // ── Scene state (module-level vars, reset in init) ────────────────────────
-var _storySlide    = 0;    // current slide index 0-3
-var _storySlideT   = 0;    // seconds on this slide
-var _storyTotalT   = 0;    // seconds in scene
-var _storyTextA    = 0;    // text fade alpha 0-1
-var _storySkipRect = null; // hit-rect for skip button, set each draw frame
-var _storyHandler  = null; // canvas event handler (detached on destroy)
-var _storyIgnore   = 0;    // ignore input until this timestamp (ms)
+var _storySlide       = 0;     // current slide index 0-3
+var _storySlideT      = 0;     // seconds on this slide
+var _storyTotalT      = 0;     // seconds in scene
+var _storyTextA       = 0;     // text fade alpha 0-1
+var _storySkipRect    = null;  // hit-rect for skip button, set each draw frame
+var _storyHandler     = null;  // canvas event handler (detached on destroy)
+var _storyIgnore      = 0;     // ignore input until this timestamp (ms)
+var _storyBlessFired  = false; // so blessing swell only plays once per slide 2
 
 // Auto-advance after 4 seconds per slide
 var _STORY_AUTO = 4;
@@ -43,8 +44,9 @@ var _STORY_SLIDES = [
 function _storyAdvance() {
   if (_storySlide < _STORY_SLIDES.length - 1) {
     _storySlide++;
-    _storySlideT = 0;
-    _storyTextA  = 0;
+    _storySlideT     = 0;
+    _storyTextA      = 0;
+    _storyBlessFired = false;  // reset so swell can fire on slide 2
   } else {
     G.sceneManager.goto(G.LEVEL_ORDER[0] || 'level1');
   }
@@ -54,11 +56,13 @@ function _storyAdvance() {
 G.scenes['story'] = {
 
   init: function () {
-    _storySlide  = 0;
-    _storySlideT = 0;
-    _storyTotalT = 0;
-    _storyTextA  = 0;
-    _storySkipRect = null;
+    _storySlide      = 0;
+    _storySlideT     = 0;
+    _storyTotalT     = 0;
+    _storyTextA      = 0;
+    _storySkipRect   = null;
+    _storyBlessFired = false;
+    if (G.Music) G.Music.play('story');
 
     // Ignore clicks for 400 ms — prevents the Play-button click from
     // immediately advancing to slide 2.
@@ -84,6 +88,12 @@ G.scenes['story'] = {
     _storySlideT += dt;
     _storyTotalT += dt;
     _storyTextA   = Math.min(1, _storySlideT / 0.6);
+
+    // Slide 2 blessing swell — fires when Ganesha first fades in (~1.8 s)
+    if (_storySlide === 2 && !_storyBlessFired && _storySlideT >= 1.8) {
+      _storyBlessFired = true;
+      if (G.Music) G.Music.storyBlessSwell();
+    }
 
     // Space / action key advances
     if (G.input.state.actionPressed) {

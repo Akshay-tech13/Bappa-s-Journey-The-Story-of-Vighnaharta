@@ -224,6 +224,7 @@ G.scenes['level2'] = {
     }
     _l2attachClick();
     if (G.audio.startDhol) G.audio.startDhol();
+    if (G.Music) G.Music.play('level2');
     // Spawn first wave immediately
     _l2spawnWave();
   },

@@ -114,6 +114,7 @@ G.scenes['level3'] = {
 
     // Start dhol loop
     if (G.audio.startDhol) G.audio.startDhol();
+    if (G.Music) G.Music.play('level3');
   },
 
   // ── destroy ───────────────────────────────────────────────────────────────

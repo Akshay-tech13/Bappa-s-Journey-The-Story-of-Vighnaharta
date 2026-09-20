@@ -182,6 +182,8 @@ G.audio = (function () {
     try { localStorage.setItem('bappa_muted', muted ? '1' : '0'); } catch (e) {}
     // Stop dhol immediately when muting
     if (muted && dholRunning) stopDhol();
+    // Sync music bus gain
+    if (window.G && G.Music) G.Music.syncMute();
   }
 
   function isMuted() { return muted; }

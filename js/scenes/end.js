@@ -49,6 +49,7 @@ G.scenes['end'] = {
     _endT      = 0;
     _endBtns   = [];
     _endIgnore = performance.now() + 400;
+    if (G.Music) G.Music.play('end');
 
     // Compute total blessing score from this run
     var total = 0;
