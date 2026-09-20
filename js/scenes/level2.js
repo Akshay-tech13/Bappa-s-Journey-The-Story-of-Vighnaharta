@@ -104,6 +104,31 @@ var _l2scrollOff  = 0;
 var L2_RUN_SECS = 60;
 var L2_BLESS_CD  = 1.5;
 
+// ── Roadside scenery: pre-seeded scrolling objects ────────────────────────
+// Each entry: { type, lane(-2|-1|1|2=outer sides), z, phase }
+// type: 'tree'|'bush'|'diya'|'flag'
+var _l2roadside = (function () {
+  var items = [];
+  var seed  = 42;
+  function rng() { seed = (seed * 1664525 + 1013904223) & 0xFFFFFFFF; return (seed >>> 0) / 0xFFFFFFFF; }
+  var types = ['tree','bush','diya','flag','tree','bush'];
+  for (var i = 0; i < 28; i++) {
+    items.push({
+      type:  types[Math.floor(rng() * types.length)],
+      side:  rng() > 0.5 ? 1 : -1,  // left or right of road
+      z:     rng(),                  // 0..1 initial depth
+      phase: rng() * Math.PI * 2,    // animation phase offset
+    });
+  }
+  return items;
+}());
+
+// Dust puff particles (behind Mushak)
+var _l2dustPuffs = [];
+// Blessing streak particles
+var _l2blessStreaks = [];
+var _l2blessFired   = false; // tracks when to spawn streaks
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -190,6 +215,13 @@ G.scenes['level2'] = {
     _l2scrollOff = 0;
     _l2orbitAngle = 0;  _l2laps = 0;  _l2lastLap = -1;
     _l2nextRect = null;
+    _l2dustPuffs = [];
+    _l2blessStreaks = [];
+    _l2blessFired = false;
+    // Reset roadside z positions for a fresh start
+    for (var ri = 0; ri < _l2roadside.length; ri++) {
+      _l2roadside[ri].z = (ri / _l2roadside.length);
+    }
     _l2attachClick();
     if (G.audio.startDhol) G.audio.startDhol();
     // Spawn first wave immediately
@@ -243,6 +275,59 @@ G.scenes['level2'] = {
           if (o.z > bestZ) { bestZ = o.z; best = i; }
         }
         if (best >= 0) _l2objects[best].cleared = true;
+      }
+
+      // ── Dust puffs behind Mushak ──────────────────────────────────────
+      if (Math.random() < dt * 12) {
+        _l2dustPuffs.push({
+          x: G.W / 2 + ([-L2_LANE_SEP * 0.5, 0, L2_LANE_SEP * 0.5][_l2lane]),
+          y: L2_GROUND_Y + 10,
+          vx: (Math.random() - 0.5) * 30,
+          vy: -40 - Math.random() * 20,
+          life: 0.5 + Math.random() * 0.3,
+          maxLife: 0.8,
+          r: 6 + Math.random() * 6,
+        });
+      }
+      // Update dust puffs
+      for (var dp = _l2dustPuffs.length - 1; dp >= 0; dp--) {
+        var puff = _l2dustPuffs[dp];
+        puff.life -= dt;
+        puff.x   += puff.vx * dt;
+        puff.y   += puff.vy * dt;
+        puff.vy  += 15 * dt;  // gentle gravity
+        if (puff.life <= 0) _l2dustPuffs.splice(dp, 1);
+      }
+
+      // ── Blessing streaks ───────────────────────────────────────────────
+      var wasJustFired = (inp.actionPressed && _l2blessCool === L2_BLESS_CD);
+      if (wasJustFired && !_l2blessFired) {
+        _l2blessFired = true;
+        for (var bsi = 0; bsi < 12; bsi++) {
+          var ang = (bsi / 12) * Math.PI * 2;
+          _l2blessStreaks.push({
+            x: G.W / 2, y: L2_GROUND_Y - 60,
+            vx: Math.cos(ang) * (60 + Math.random() * 60),
+            vy: Math.sin(ang) * (40 + Math.random() * 40) - 20,
+            life: 0.4 + Math.random() * 0.2,
+          });
+        }
+      }
+      if (!inp.actionPressed) _l2blessFired = false;
+
+      for (var bsi2 = _l2blessStreaks.length - 1; bsi2 >= 0; bsi2--) {
+        var st = _l2blessStreaks[bsi2];
+        st.life -= dt;
+        st.x    += st.vx * dt;
+        st.y    += st.vy * dt;
+        if (st.life <= 0) _l2blessStreaks.splice(bsi2, 1);
+      }
+
+      // ── Scroll roadside scenery ────────────────────────────────────────
+      var roadsideSpeed = _l2speed * 0.55 * dt;
+      for (var rs = 0; rs < _l2roadside.length; rs++) {
+        _l2roadside[rs].z += roadsideSpeed;
+        if (_l2roadside[rs].z > 1.1) _l2roadside[rs].z -= 1.1;
       }
 
       // Scroll objects forward
@@ -350,110 +435,314 @@ G.scenes['level2'] = {
 // ═══════════════════════════════════════════════════════════════════════════
 function _l2drawRun(ctx) {
   var t = _l2t;
+  var cx = G.W / 2;
 
-  // ── Sky ──────────────────────────────────────────────────────────────
-  var skyGrad = ctx.createLinearGradient(0, 0, 0, L2_HORIZON_Y);
-  skyGrad.addColorStop(0, '#87CEEB');
-  skyGrad.addColorStop(1, '#C8E8F5');
+  // ── Camera bob (subtle vertical sway for speed feel) ─────────────────
+  var camBob = Math.sin(t * 9 * _l2speed) * 2.5;
+
+  // ── Sky: dusk gradient #1B1F4B → #F2A65A ─────────────────────────────
+  var skyGrad = ctx.createLinearGradient(0, 0, 0, L2_HORIZON_Y + camBob);
+  skyGrad.addColorStop(0,   '#1B1F4B');
+  skyGrad.addColorStop(0.45,'#3B2068');
+  skyGrad.addColorStop(0.80,'#C85A20');
+  skyGrad.addColorStop(1,   '#F2A65A');
   ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, G.W, L2_HORIZON_Y);
+  ctx.fillRect(0, 0, G.W, L2_HORIZON_Y + camBob + 2);
 
-  // Mount Kailash silhouette on horizon
+  // Stars (upper third of sky only — visible at dusk)
+  for (var si = 0; si < 30; si++) {
+    var sx = (si * 0.037 * G.W + 40) % G.W;
+    var sy = 10 + (si * 0.031 * (L2_HORIZON_Y * 0.45));
+    var sA = 0.3 + Math.sin(t * (0.9 + si * 0.1) + si) * 0.2;
+    ctx.beginPath(); ctx.arc(sx, sy, 1 + (si % 3) * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,248,208,' + sA + ')'; ctx.fill();
+  }
+
+  // Soft vanishing-point glow
+  G.scenery.drawGlow(ctx, cx, L2_HORIZON_Y + camBob, 140, '#FFB060', 0.38);
+
+  // ── Mountain ranges (3 layers, clipped to sky) ────────────────────────
   ctx.save();
-  ctx.translate(G.W / 2, L2_HORIZON_Y);
-  ctx.beginPath();
-  ctx.moveTo(-400, 0); ctx.lineTo(-140, -90); ctx.lineTo(-60, -90);
-  ctx.lineTo(0, -130); ctx.lineTo(60, -90); ctx.lineTo(140, -90);
-  ctx.lineTo(400, 0); ctx.closePath();
-  ctx.fillStyle = '#7070A0'; ctx.fill();
-  // Snow caps
-  ctx.beginPath();
-  ctx.moveTo(-40, -90); ctx.lineTo(0, -130); ctx.lineTo(40, -90);
-  ctx.fillStyle = '#E8F0FF'; ctx.fill();
+  ctx.beginPath(); ctx.rect(0, 0, G.W, L2_HORIZON_Y + camBob);
+  ctx.clip();
+  _l2drawMountains(ctx, cx, L2_HORIZON_Y + camBob, t);
   ctx.restore();
 
-  // ── Road / ground ─────────────────────────────────────────────────────
-  var roadGrad = ctx.createLinearGradient(0, L2_HORIZON_Y, 0, G.H);
-  roadGrad.addColorStop(0, '#8B7355');
-  roadGrad.addColorStop(1, '#6B5A42');
-  ctx.fillStyle = roadGrad;
-  ctx.beginPath();
-  ctx.moveTo(0, L2_HORIZON_Y);
-  ctx.lineTo(G.W, L2_HORIZON_Y);
-  ctx.lineTo(G.W, G.H);
-  ctx.lineTo(0, G.H);
-  ctx.closePath();
-  ctx.fill();
+  // ── Ground: meadow verges + warm stone road ───────────────────────────
+  _l2drawGround(ctx, L2_HORIZON_Y + camBob, t);
 
-  // Road edge lines (perspective)
-  for (var li = 0; li < 2; li++) {
-    var edgeX = li === 0 ? 0 : G.W;
-    ctx.beginPath();
-    ctx.moveTo(G.W / 2, L2_HORIZON_Y);
-    ctx.lineTo(edgeX, G.H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+  // ── Roadside scenery (sorted back-to-front) ───────────────────────────
+  var roadsorted = _l2roadside.slice().sort(function (a, b) { return a.z - b.z; });
+  for (var rsi = 0; rsi < roadsorted.length; rsi++) {
+    var item = roadsorted[rsi];
+    if (item.z < 0.05) continue;  // behind horizon, skip
+    // Project to screen: roadside objects are outside lane 2 on each side
+    // laneOff = ±(0.72 + side_jitter) makes them appear off the road verge
+    var jitter = 0.15 + ((rsi * 0.137) % 0.35);
+    var laneOff = item.side * (0.72 + jitter);
+    var rp = _l2projectPoint(item.z, laneOff);
+    var rsc = 0.2 + item.z * 0.8;
+    ctx.save();
+    ctx.translate(rp.x, rp.y);
+    ctx.scale(rsc, rsc);
+    _l2drawRoadsideItem(ctx, item.type, t + item.phase);
+    ctx.restore();
   }
 
-  // Lane dividers (dashed, scrolling)
-  for (var div = -1; div <= 1; div += 2) {
-    for (var seg = 0; seg < 10; seg++) {
-      var segZ = ((seg / 10 + _l2scrollOff * 0.01) % 1);
-      var p1 = _l2projectPoint(segZ, div * 0.5);
-      var p2 = _l2projectPoint(Math.min(1, segZ + 0.06), div * 0.5);
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.strokeStyle = 'rgba(255,255,200,0.4)';
-      ctx.lineWidth = Math.max(1, 3 * segZ);
-      ctx.stroke();
-    }
-  }
-
-  // ── Road objects (sorted back-to-front by z) ─────────────────────────
+  // ── Road objects (sorted back-to-front) ──────────────────────────────
   var sorted = _l2objects.slice().sort(function (a, b) { return a.z - b.z; });
   for (var oi = 0; oi < sorted.length; oi++) {
     var obj = sorted[oi];
     if (obj.cleared) continue;
     var proj = _l2project(obj.z, obj.lane);
-    var sc   = proj.scale;
+    var sc   = proj.scale * 1.4;   // 1.4× larger than before
     ctx.save();
     ctx.translate(proj.x, proj.y);
     ctx.scale(sc, sc);
-    if (obj.type === 'rock')  { G.art.drawRock(ctx, 0, 0); }
-    else if (obj.type === 'log')  { G.art.drawLog(ctx, 0, 0); }
-    else if (obj.type === 'bush') { G.art.drawBush(ctx, 0, 0); }
-    else if (obj.type === 'modak'){ G.art.drawModak(ctx, 0, 0, 1.0); }
+    if (obj.type === 'rock')  { G.art.drawRock(ctx, 0, 0); _l2darkOutline(ctx); }
+    else if (obj.type === 'log')  { G.art.drawLog(ctx, 0, 0); _l2darkOutline(ctx); }
+    else if (obj.type === 'bush') { G.art.drawBush(ctx, 0, 0); _l2darkOutline(ctx); }
+    else if (obj.type === 'modak') {
+      // Pulsing golden glow behind modak
+      var mglow = 0.45 + Math.sin(t * 4 + obj.id) * 0.15;
+      G.scenery.drawGlow(ctx, 0, -14, 22, '#FFD860', mglow);
+      G.art.drawModak(ctx, 0, 0, 1.0);
+    }
     ctx.restore();
   }
 
-  // ── Player: Ganesha on Mushak ─────────────────────────────────────────
-  // Compute visual X by lerping between lane positions
+  // ── Dust puffs ────────────────────────────────────────────────────────
+  for (var dp2 = 0; dp2 < _l2dustPuffs.length; dp2++) {
+    var pf = _l2dustPuffs[dp2];
+    var pfA = (pf.life / (pf.maxLife || 0.8)) * 0.4;
+    ctx.beginPath(); ctx.arc(pf.x, pf.y, pf.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(200,170,120,' + pfA + ')'; ctx.fill();
+  }
+
+  // ── Kartikeya: small, always ahead in far lane ────────────────────────
+  _l2drawKartikeyaRunner(ctx, t);
+
+  // ── Player: Ganesha on Mushak (back view) 1.5× bigger ────────────────
   var laneXs   = [-L2_LANE_SEP * 0.5, 0, L2_LANE_SEP * 0.5];
   var fromX    = laneXs[_l2lane];
   var toX      = laneXs[_l2targetLane];
   var lerpedX  = fromX + (toX - fromX) * _l2laneAnim;
-  var playerX  = G.W / 2 + lerpedX;
-  var playerY  = L2_GROUND_Y + 20;
-
-  // Wobble offset
+  // Lean into the lane change
+  var leanAngle = (_l2targetLane - _l2lane) * (1 - _l2laneAnim) * 0.12;
+  var playerX  = cx + lerpedX;
+  var playerY  = L2_GROUND_Y + 20 + camBob;
   var wobbleOff = _l2wobble > 0 ? Math.sin(_l2t * 18) * 8 : 0;
 
-  G.art.drawMushak(ctx, playerX + wobbleOff, playerY, t, { scale: 1.1, dir: 1 });
-  G.art.drawGanesha(ctx, playerX + wobbleOff, playerY - 30, t, { state: 'celebrate', scale: 0.85 });
+  ctx.save();
+  ctx.translate(playerX + wobbleOff, playerY);
+  ctx.rotate(leanAngle);
+  ctx.translate(-(playerX + wobbleOff), -playerY);
+  // Back-view sprite — drawGaneshaOnMushak handles back view internally
+  G.art.drawGaneshaOnMushak(ctx, playerX + wobbleOff, playerY, t, {
+    scale: 1.5,
+    wobble: _l2wobble > 0 ? 1 : 0,
+  });
+  ctx.restore();
+
+  // ── Blessing streaks ──────────────────────────────────────────────────
+  for (var bs = 0; bs < _l2blessStreaks.length; bs++) {
+    var streak = _l2blessStreaks[bs];
+    var bsA = streak.life * 2.5;
+    if (bsA > 1) bsA = 1;
+    ctx.beginPath(); ctx.arc(streak.x, streak.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,230,80,' + bsA + ')'; ctx.fill();
+  }
 
   // ── HUD ───────────────────────────────────────────────────────────────
   _l2drawRunHUD(ctx);
 
-  // ── Lane buttons (touch) ──────────────────────────────────────────────
-  _l2btnLeft  = G.ui.drawButton(ctx, '◀', 50,  G.H - 60, 80, 60,
-    { color: 'rgba(0,0,0,0.4)', fontSize: 28, radius: 10 });
-  _l2btnRight = G.ui.drawButton(ctx, '▶', G.W - 50, G.H - 60, 80, 60,
-    { color: 'rgba(0,0,0,0.4)', fontSize: 28, radius: 10 });
+  // ── Lane buttons (touch) — big, 88×72 ────────────────────────────────
+  _l2btnLeft  = G.ui.drawButton(ctx, '◀', 56,  G.H - 68, 88, 72,
+    { color: 'rgba(0,0,0,0.55)', fontSize: 32, radius: 12 });
+  _l2btnRight = G.ui.drawButton(ctx, '▶', G.W - 56, G.H - 68, 88, 72,
+    { color: 'rgba(0,0,0,0.55)', fontSize: 32, radius: 12 });
 
-  // Blessing ring
-  _l2drawBlessingRing(ctx, G.W - 52, 66, _l2blessCool, L2_BLESS_CD);
+  // ── Blessing button: bottom right, above right arrow ─────────────────
+  // Cooldown ring integrated into a big touch target
+  _l2drawBlessingRing(ctx, G.W - 56, G.H - 160, _l2blessCool, L2_BLESS_CD);
+}
+
+// ── Mountain layers drawn into sky clip region ────────────────────────────
+function _l2drawMountains(ctx, cx, horizY, t) {
+  // Layer 3 — far, dark indigo
+  ctx.fillStyle = '#2A2458';
+  ctx.beginPath(); ctx.moveTo(0, horizY);
+  var pts3 = [0,-30, 180,-90, 320,-70, 440,-110, 560,-60, 640,-130,
+              720,-60, 840,-100, 960,-70, 1080,-85, 1200,-55, G.W,-30, G.W,horizY];
+  for (var i3 = 0; i3 < pts3.length; i3 += 2) {
+    ctx.lineTo(cx - 640 + pts3[i3], horizY + pts3[i3+1]);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // Layer 2 — mid, muted purple
+  ctx.fillStyle = '#4A3070';
+  ctx.beginPath(); ctx.moveTo(0, horizY);
+  var pts2 = [0,-10, 150,-55, 280,-38, 380,-72, 480,-40, 580,-85,
+              700,-40, 780,-65, 900,-42, 1020,-58, 1140,-36, G.W,-14, G.W,horizY];
+  for (var i2 = 0; i2 < pts2.length; i2 += 2) {
+    ctx.lineTo(pts2[i2], horizY + pts2[i2+1]);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // Snow caps on mid layer (white tips on tallest peaks)
+  var peaks = [[380,-72],[580,-85],[780,-65]];
+  for (var pk = 0; pk < peaks.length; pk++) {
+    var px = peaks[pk][0], pd = peaks[pk][1];
+    ctx.fillStyle = 'rgba(240,245,255,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(px - 16, horizY + pd + 14);
+    ctx.lineTo(px, horizY + pd - 4);
+    ctx.lineTo(px + 16, horizY + pd + 14);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Layer 1 — near, warm saffron silhouette
+  ctx.fillStyle = '#6A3828';
+  ctx.beginPath(); ctx.moveTo(0, horizY);
+  var pts1 = [0,0, 120,-22, 240,-14, 360,-32, 480,-18, 600,-28, 720,-15,
+              840,-26, 960,-16, 1100,-24, 1200,-12, G.W,0, G.W,horizY];
+  for (var i1 = 0; i1 < pts1.length; i1 += 2) {
+    ctx.lineTo(pts1[i1], horizY + pts1[i1+1]);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+// ── Ground: meadow sides + perspective road ───────────────────────────────
+function _l2drawGround(ctx, horizY, t) {
+  var GROUND_BOTTOM = G.H;
+  var cx = G.W / 2;
+
+  // Green-gold meadow (full ground area)
+  var meadow = ctx.createLinearGradient(0, horizY, 0, GROUND_BOTTOM);
+  meadow.addColorStop(0, '#4A6A18');
+  meadow.addColorStop(0.5,'#3A5010');
+  meadow.addColorStop(1,  '#2A3A08');
+  ctx.fillStyle = meadow;
+  ctx.fillRect(0, horizY, G.W, GROUND_BOTTOM - horizY);
+
+  // Road trapezoid (warm cream stone)
+  var roadNearHalfW = L2_LANE_SEP * 1.05;
+  var roadFarHalfW  = 8;
+  ctx.beginPath();
+  ctx.moveTo(cx - roadFarHalfW, horizY);
+  ctx.lineTo(cx + roadFarHalfW, horizY);
+  ctx.lineTo(cx + roadNearHalfW, GROUND_BOTTOM);
+  ctx.lineTo(cx - roadNearHalfW, GROUND_BOTTOM);
+  ctx.closePath();
+  var roadGrad = ctx.createLinearGradient(0, horizY, 0, GROUND_BOTTOM);
+  roadGrad.addColorStop(0, '#A08858');
+  roadGrad.addColorStop(1, '#786038');
+  ctx.fillStyle = roadGrad; ctx.fill();
+
+  // Road edge lines (perspective)
+  for (var li = 0; li < 2; li++) {
+    var ex = li === 0 ? cx - roadNearHalfW : cx + roadNearHalfW;
+    ctx.beginPath();
+    ctx.moveTo(cx + (li === 0 ? -1 : 1) * roadFarHalfW, horizY);
+    ctx.lineTo(ex, GROUND_BOTTOM);
+    ctx.strokeStyle = 'rgba(255,240,180,0.45)';
+    ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  // Scrolling lane dash lines (cream, 2 lanes)
+  for (var div = -1; div <= 1; div += 2) {
+    for (var seg = 0; seg < 14; seg++) {
+      var segZ = ((seg / 14 + _l2scrollOff * 0.012) % 1);
+      if (segZ < 0.04) continue;  // hide below horizon
+      var p1 = _l2projectPoint(segZ,        div * 0.5);
+      var p2 = _l2projectPoint(Math.min(1, segZ + 0.04), div * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = 'rgba(255,240,200,0.55)';
+      ctx.lineWidth = Math.max(1, 3.5 * segZ);
+      ctx.stroke();
+    }
+  }
+
+  // Meadow highlight shimmer strips (sense of speed)
+  for (var ms = 0; ms < 6; ms++) {
+    var mz = ((ms / 6 + _l2scrollOff * 0.018 + ms * 0.17) % 1);
+    if (mz < 0.05) continue;
+    var mOffL = _l2projectPoint(mz, -1.1);
+    var mOffR = _l2projectPoint(mz,  1.1);
+    var mA    = mz * 0.12;
+    ctx.fillStyle = 'rgba(160,200,60,' + mA + ')';
+    ctx.fillRect(0, mOffL.y - 1.5, mOffL.x, 2);
+    ctx.fillRect(mOffR.x, mOffR.y - 1.5, G.W - mOffR.x, 2);
+  }
+}
+
+// ── Roadside decorative items ─────────────────────────────────────────────
+function _l2drawRoadsideItem(ctx, type, t) {
+  if (type === 'tree') {
+    // Simple festival tree (dark trunk + rounded green canopy)
+    ctx.fillStyle = '#3A2010';
+    ctx.fillRect(-5, -55, 10, 55);
+    ctx.beginPath(); ctx.arc(0, -68, 28, 0, Math.PI * 2);
+    ctx.fillStyle = '#2A5818'; ctx.fill();
+    ctx.beginPath(); ctx.arc(-10, -58, 18, 0, Math.PI * 2);
+    ctx.fillStyle = '#3A7028'; ctx.fill();
+    // Small marigold cluster on top
+    ctx.beginPath(); ctx.arc(0, -90, 5, 0, Math.PI * 2);
+    ctx.fillStyle = G.COL.marigold; ctx.fill();
+  } else if (type === 'bush') {
+    // Marigold bush — warm orange-yellow blooms
+    ctx.beginPath(); ctx.arc(0, -18, 18, 0, Math.PI * 2);
+    ctx.fillStyle = '#2A5810'; ctx.fill();
+    for (var bi = 0; bi < 5; bi++) {
+      var ba = bi * 1.26 + t * 0.4;
+      ctx.beginPath(); ctx.arc(Math.cos(ba) * 12, -18 + Math.sin(ba) * 10, 6, 0, Math.PI * 2);
+      ctx.fillStyle = (bi % 2 === 0) ? G.COL.marigold : G.COL.saffron;
+      ctx.fill();
+    }
+  } else if (type === 'diya') {
+    // Diya lamp post: pole + diya on top
+    ctx.fillStyle = '#5A3010';
+    ctx.fillRect(-3, -50, 6, 50);
+    ctx.beginPath(); ctx.arc(0, -55, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#8A5020'; ctx.fill();
+    G.art.drawDiya(ctx, 0, -50, true, t);
+  } else if (type === 'flag') {
+    // Small saffron festival flag on a pole
+    ctx.strokeStyle = '#4A2008'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -48); ctx.stroke();
+    ctx.fillStyle = G.COL.saffron;
+    ctx.beginPath();
+    ctx.moveTo(0, -48); ctx.lineTo(22, -42); ctx.lineTo(0, -36);
+    ctx.closePath(); ctx.fill();
+    // Om symbol on flag
+    ctx.fillStyle = G.COL.gold;
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('ॐ', 10, -42);
+  }
+}
+
+// ── Dark outline helper for obstacles (improves contrast on new bg) ───────
+function _l2darkOutline(ctx) {
+  ctx.strokeStyle = 'rgba(20,8,0,0.55)';
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+  ctx.stroke();
+}
+
+// ── Kartikeya small sprite in far lane, always slightly ahead ────────────
+function _l2drawKartikeyaRunner(ctx, t) {
+  // Kartikeya is scripted ahead; show him in the far lane on screen
+  // Approximate: project at z=0.45 in lane 0 or 2 (alternates slowly)
+  var kartLane = Math.floor(_l2t / 8) % 2 === 0 ? 0 : 2;
+  var kartProj = _l2project(0.45, kartLane);
+  var kartSc   = kartProj.scale * 0.75;
+  ctx.save();
+  ctx.translate(kartProj.x, kartProj.y);
+  ctx.scale(kartSc, kartSc);
+  G.art.drawKartikeya(ctx, 0, 0, t, { scale: 1.0, dir: 1 });
+  ctx.restore();
 }
 
 // Project a normalised-lane-offset (-1..1) to screen X at depth z
@@ -464,42 +753,75 @@ function _l2projectPoint(z, laneOff) {
 }
 
 function _l2drawRunHUD(ctx) {
-  var t = _l2t;
-
-  // Track progress bar (top of screen)
-  var barX = 80, barY = 14, barW = G.W - 160, barH = 22;
-  // Background
-  G.art.roundRect(ctx, barX, barY, barW, barH, 8, 'rgba(0,0,0,0.45)');
-
-  // Road track line
-  ctx.fillStyle = '#8B7355';
-  G.art.roundRect(ctx, barX + 4, barY + 9, barW - 8, 4, 2, '#8B7355');
-
-  // Kartikeya icon (peacock green)
-  var kartX = barX + 4 + (barW - 22) * Math.min(0.98, _l2kartProg);
-  G.art.circle(ctx, kartX, barY + barH / 2, 9, G.COL.green);
-  G.art.centeredText(ctx, 'K', kartX, barY + barH / 2, 11, G.COL.white);
-
-  // Ganesha icon (saffron)
-  var ganX = barX + 4 + (barW - 22) * Math.min(0.98, _l2progress);
-  G.art.circle(ctx, ganX, barY + barH / 2, 9, G.COL.saffron);
-  G.art.centeredText(ctx, 'G', ganX, barY + barH / 2, 11, G.COL.white);
-
-  // Modak + hit count
-  G.art.centeredText(ctx, '🍡 ' + _l2modakCount, 42, 54, 18, G.COL.cream);
-  if (_l2hitCount > 0) {
-    G.art.centeredText(ctx, 'Hits: ' + _l2hitCount, G.W / 2, 54, 16, 'rgba(255,180,100,0.8)');
+  // ── Race progress bar (top, inside a panel) ───────────────────────────
+  var barX = 60, barY = 12, barW = G.W - 120, barH = 26;
+  // Panel
+  ctx.fillStyle = 'rgba(0,0,0,0.58)';
+  if (ctx.roundRect) {
+    ctx.beginPath(); ctx.roundRect(barX - 8, barY - 4, barW + 16, barH + 8, 8); ctx.fill();
+  } else {
+    ctx.fillRect(barX - 8, barY - 4, barW + 16, barH + 8);
   }
-  // Time remaining
+
+  // Track line
+  ctx.fillStyle = '#7A5828';
+  ctx.fillRect(barX + 4, barY + 11, barW - 8, 4);
+
+  // ── Kartikeya icon: green circle, 'K', bigger (r=13) ─────────────────
+  var kartX = barX + 4 + (barW - 26) * Math.min(0.98, _l2kartProg);
+  G.art.circle(ctx, kartX, barY + barH / 2, 13, G.COL.green);
+  // Dark outline on icon
+  ctx.beginPath(); ctx.arc(kartX, barY + barH / 2, 13, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+  // Bold 'K' with outline
+  ctx.font = 'bold 13px -apple-system,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillText('K', kartX + 1, barY + barH / 2 + 1);
+  ctx.fillStyle = G.COL.white; ctx.fillText('K', kartX, barY + barH / 2);
+
+  // ── Ganesha icon: saffron circle, 'G', bigger ────────────────────────
+  var ganX = barX + 4 + (barW - 26) * Math.min(0.98, _l2progress);
+  G.art.circle(ctx, ganX, barY + barH / 2, 13, G.COL.saffron);
+  ctx.beginPath(); ctx.arc(ganX, barY + barH / 2, 13, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.font = 'bold 13px -apple-system,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillText('G', ganX + 1, barY + barH / 2 + 1);
+  ctx.fillStyle = G.COL.white; ctx.fillText('G', ganX, barY + barH / 2);
+
+  // ── Hits panel (top-left, below race bar) ─────────────────────────────
+  var hudPanelY = barY + barH + 14;
+  _l2hudText(ctx, 'Hits: ' + _l2hitCount, 24, hudPanelY, 20,
+    _l2hitCount > 0 ? '#FFBB70' : G.COL.cream);
+
+  // ── Timer (top-centre, below race bar) ────────────────────────────────
   var rem = Math.max(0, Math.ceil(L2_RUN_SECS - _l2t));
-  G.art.centeredText(ctx, rem + 's', G.W - 80, 54, 16, 'rgba(255,255,255,0.5)');
+  _l2hudText(ctx, rem + 's', G.W / 2, hudPanelY, 20, G.COL.cream);
+
+  // ── Modak count (top-left, small) ─────────────────────────────────────
+  _l2hudText(ctx, '★ ' + _l2modakCount, G.W - 24, hudPanelY, 20, G.COL.gold);
+}
+
+// Helper: draw HUD text with a dark drop-shadow for legibility
+function _l2hudText(ctx, text, x, y, size, color) {
+  ctx.font = 'bold ' + size + 'px -apple-system,sans-serif';
+  ctx.textAlign   = (x < 100) ? 'left' : (x > G.W - 100) ? 'right' : 'center';
+  ctx.textBaseline = 'top';
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillText(text, x + 1.5, y + 1.5);
+  // Text
+  ctx.fillStyle = color || G.COL.cream;
+  ctx.fillText(text, x, y);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  DRAW: FINISH TEXT
 // ═══════════════════════════════════════════════════════════════════════════
 function _l2drawFinish(ctx) {
-  // Static road background
+  // Improved road background
   _l2drawRunBg(ctx);
 
   // Dark overlay
@@ -513,7 +835,7 @@ function _l2drawFinish(ctx) {
   G.art.drawShiva(ctx,   G.W / 2 - 140, G.H / 2 + 80, _l2t, { scale: 0.9 });
   G.art.drawParvati(ctx, G.W / 2 + 140, G.H / 2 + 80, _l2t, { scale: 0.9 });
 
-  // Finish text
+  // Finish text with proper outlines
   var alpha = Math.min(1, _l2phaseT / 0.6);
   ctx.save(); ctx.globalAlpha = alpha;
   G.art.centeredText(ctx, 'Kartikeya is faster...', G.W / 2, G.H / 2 + 150, 28, G.COL.marigold);
@@ -521,7 +843,6 @@ function _l2drawFinish(ctx) {
   G.art.centeredText(ctx, 'His parents are his world.', G.W / 2, G.H / 2 + 224, 22, G.COL.gold);
   ctx.restore();
 
-  // Continue prompt
   if (_l2phaseT > 2) {
     ctx.save();
     ctx.globalAlpha = 0.6 + Math.sin(_l2t * 3) * 0.2;
@@ -530,14 +851,15 @@ function _l2drawFinish(ctx) {
   }
 }
 
-// Simple road background without objects (reused in finish phase)
+// Road background (reused in finish phase)
 function _l2drawRunBg(ctx) {
-  // Sky
-  ctx.fillStyle = '#87CEEB';
-  ctx.fillRect(0, 0, G.W, L2_HORIZON_Y);
-  // Ground
-  ctx.fillStyle = '#7B6347';
-  ctx.fillRect(0, L2_HORIZON_Y, G.W, G.H - L2_HORIZON_Y);
+  var horizY = L2_HORIZON_Y;
+  var skyGrad = ctx.createLinearGradient(0, 0, 0, horizY);
+  skyGrad.addColorStop(0, '#1B1F4B'); skyGrad.addColorStop(1, '#F2A65A');
+  ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, G.W, horizY);
+  var meadow = ctx.createLinearGradient(0, horizY, 0, G.H);
+  meadow.addColorStop(0, '#4A6A18'); meadow.addColorStop(1, '#2A3A08');
+  ctx.fillStyle = meadow; ctx.fillRect(0, horizY, G.W, G.H - horizY);
 }
 
 function _l2drawKailashGates(ctx, cx, cy) {
@@ -633,20 +955,42 @@ function _l2drawComplete(ctx) {
     { color: G.COL.saffron, fontSize: 24, radius: 14 });
 }
 
-// ── Reusable blessing cooldown ring ─────────────────────────────────────
+// ── Blessing cooldown ring — large touch target (r=36) ───────────────────
+// Drawn at bottom-right above the right arrow button.
 function _l2drawBlessingRing(ctx, bx, by, cool, maxCool) {
-  ctx.beginPath(); ctx.arc(bx, by, 20, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fill();
+  var R = 36;
+  // Background circle
+  ctx.beginPath(); ctx.arc(bx, by, R, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fill();
+  // Outer border
+  ctx.beginPath(); ctx.arc(bx, by, R, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,210,60,0.3)'; ctx.lineWidth = 3; ctx.stroke();
+
   if (cool > 0) {
     var frac = cool / maxCool;
-    ctx.beginPath(); ctx.arc(bx, by, 20, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 4; ctx.stroke();
-    ctx.beginPath(); ctx.arc(bx, by, 20, -Math.PI / 2 + frac * Math.PI * 2, Math.PI * 1.5);
-    ctx.strokeStyle = G.COL.gold; ctx.lineWidth = 4; ctx.stroke();
+    // Cooldown arc (depleted portion, grey)
+    ctx.beginPath();
+    ctx.arc(bx, by, R - 3, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 5; ctx.stroke();
+    // Gold arc (ready portion)
+    ctx.beginPath();
+    ctx.arc(bx, by, R - 3, -Math.PI / 2 + frac * Math.PI * 2, Math.PI * 1.5);
+    ctx.strokeStyle = G.COL.gold; ctx.lineWidth = 5; ctx.stroke();
   } else {
-    ctx.beginPath(); ctx.arc(bx, by, 20, -Math.PI / 2, Math.PI * 1.5);
-    ctx.strokeStyle = G.COL.gold; ctx.lineWidth = 4; ctx.stroke();
+    // Fully ready — bright gold ring
+    ctx.beginPath(); ctx.arc(bx, by, R - 3, 0, Math.PI * 2);
+    ctx.strokeStyle = G.COL.gold; ctx.lineWidth = 5; ctx.stroke();
   }
-  ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = G.COL.gold; ctx.fillText('✨', bx, by);
+
+  // Icon + shadow
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillText('✨', bx + 1, by + 1);
+  ctx.fillStyle = cool > 0 ? 'rgba(255,210,60,0.55)' : G.COL.gold;
+  ctx.fillText('✨', bx, by);
+
+  // "Bless" label below ring when ready
+  if (cool <= 0) {
+    _l2hudText(ctx, 'Bless', bx, by + R + 4, 14, G.COL.cream);
+  }
 }

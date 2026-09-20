@@ -184,10 +184,11 @@
     requestAnimationFrame(loop);
     var params = new URLSearchParams(window.location.search);
     var dbg    = params.get('debug');
-    if      (dbg === 'art')   { G.sceneManager.goto('artGallery'); }
-    else if (dbg === 'test')  { G.sceneManager.goto('test'); }
-    else if (dbg === 'recap') { G.sceneManager.goto('recap'); }
-    else                      { G.sceneManager.goto('title'); }
+    if      (dbg === 'art')    { G.sceneManager.goto('artGallery'); }
+    else if (dbg === 'test')   { G.sceneManager.goto('test'); }
+    else if (dbg === 'recap')  { G.sceneManager.goto('recap'); }
+    else if (dbg === 'level2') { G.sceneManager.goto('level2'); }
+    else                       { G.sceneManager.goto('title'); }
   });
 
 })();
