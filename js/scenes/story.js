@@ -191,50 +191,157 @@ G.scenes['story'] = {
       }
 
     } else if (_storySlide === 1) {
-      // ── SLIDE 1: Archway door — Ganesha guarding ──────────────────
-      ctx.save(); ctx.translate(cx, cy+60);
-      G.art.roundRect(ctx,-50,-120,100,120,8,'#4A2A0A');
-      G.art.roundRect(ctx,-44,-114,88,112,6,'#6B3A18');
-      ctx.beginPath(); ctx.arc(0,-120,50,Math.PI,0); ctx.fillStyle='#4A2A0A'; ctx.fill();
-      ctx.beginPath(); ctx.arc(0,-120,44,Math.PI,0); ctx.fillStyle='#6B3A18'; ctx.fill();
-      G.art.circle(ctx, 24,-70, 5, G.COL.gold);
-      ctx.restore();
-      // Ganesha guarding
-      G.art.drawGanesha(ctx, cx, cy+200, t, { state:'idle', scale:1.2 });
-      // Diyas either side
-      G.art.drawDiya(ctx, cx-160, cy+150, true, t);
-      G.art.drawDiya(ctx, cx+160, cy+150, true, t);
-      // Stars
-      var ss2=[0.12,0.28,0.45,0.61,0.73,0.88,0.05,0.34,0.56,0.79];
-      for(var si2=0;si2<ss2.length;si2++){
-        G.art.circle(ctx,(ss2[si2]*1.3%1)*G.W,ss2[si2]*(cy+20),
-          1.5+(si2%3)*0.8,'rgba(255,255,220,'+(0.4+Math.sin(t*(1.5+si2*0.2)+si2)*0.3)+')');
+      // ── SLIDE 1: Night courtyard — the BOY guards the ornate door ─────
+      // Night sky with stars
+      G.scenery.drawSky(ctx, 0, GROUND_Y, t);
+      G.scenery.drawStars(ctx, 0, GROUND_Y, t);
+      G.scenery.drawMoon(ctx, 1100, 80, 36, t);
+
+      // Slow push-in: scale 1.0 → 1.05 over the slide
+      var pushIn1 = 1.0 + Math.sin(_storySlideT * 0.5) * 0.025;
+      ctx.save();
+      ctx.translate(cx, GROUND_Y);
+      ctx.scale(pushIn1, pushIn1);
+      ctx.translate(-cx, -GROUND_Y);
+
+      // Stone courtyard floor (night-toned)
+      ctx.beginPath(); ctx.rect(0, GROUND_Y - 40, G.W, 200);
+      var floorGrad = ctx.createLinearGradient(0, GROUND_Y - 40, 0, GROUND_Y + 160);
+      floorGrad.addColorStop(0, '#3A2A1A');
+      floorGrad.addColorStop(1, '#1C1208');
+      ctx.fillStyle = floorGrad; ctx.fill();
+      // Floor tile lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+      for (var fl = 0; fl < G.W; fl += 80) {
+        ctx.beginPath(); ctx.moveTo(fl, GROUND_Y - 40); ctx.lineTo(fl, GROUND_Y + 160); ctx.stroke();
       }
 
+      // Big ornate door — centre of scene
+      G.scenery.drawOrnateGateDoor(ctx, cx, GROUND_Y, t);
+
+      // Warm rim light on the boy (glow patch at ground level near door)
+      G.scenery.drawGlow(ctx, cx, GROUND_Y - 20, 90, '#FFB860', 0.22);
+
+      // The BOY — guard pose, standing on the steps in front of the door
+      // At scale 2.7 the boy is ~300 px tall
+      G.art.drawBoy(ctx, cx - 10, GROUND_Y, t, { state: 'guard', scale: 2.7 });
+
+      // Far-right: small calm silhouette of Shiva approaching on a path
+      // Fade in after 1 s for anticipation — no drama, no weapon raised
+      var shivaFarAlpha = Math.min(0.70, Math.max(0, (_storySlideT - 1.0) / 1.2));
+      G.scenery.drawShivaSilhouette(ctx, G.W - 140, GROUND_Y, shivaFarAlpha, t);
+
+      // Drifting petals
+      for (var spi = 0; spi < 8; spi++) {
+        var spx = (spi * 0.137 * G.W + t * (14 + spi * 3)) % G.W;
+        var spy = GROUND_Y - 120 - (spi * 0.09 * 320 + Math.sin(t * 0.8 + spi) * 20) % 320;
+        if (spy > 60 && spy < GROUND_Y - 10) {
+          G.art.drawPetal(ctx, spx, spy, t + spi * 1.1);
+        }
+      }
+
+      ctx.restore();  // end push-in
+
     } else if (_storySlide === 2) {
-      // Shiva + golden blessing glow
-      G.art.drawShiva(ctx, cx-100, cy+200, t, { scale:1.1 });
-      var pulse = 0.55 + Math.sin(t*2.5)*0.2;
-      var grd2 = ctx.createRadialGradient(cx+60,cy+80,8,cx+60,cy+80,90);
-      grd2.addColorStop(0,'rgba(255,220,60,'+pulse+')');
-      grd2.addColorStop(0.5,'rgba(255,160,30,'+(pulse*0.5)+')');
-      grd2.addColorStop(1,'rgba(255,160,30,0)');
-      ctx.beginPath(); ctx.arc(cx+60,cy+80,90,0,Math.PI*2);
-      ctx.fillStyle=grd2; ctx.fill();
-      // Elephant-head silhouette in glow
-      ctx.save(); ctx.translate(cx+60,cy+80); ctx.globalAlpha=pulse*0.75;
-      G.art.ellipse(ctx,0,-10,30,28,G.COL.gold);
-      G.art.ellipse(ctx,32,-8,16,20,G.COL.gold);
-      G.art.ellipse(ctx,-32,-8,16,20,G.COL.gold);
-      ctx.beginPath(); ctx.moveTo(6,10);
-      ctx.bezierCurveTo(20,20,24,30,18,36); ctx.bezierCurveTo(14,40,6,38,4,34);
-      ctx.strokeStyle=G.COL.gold; ctx.lineWidth=8; ctx.lineCap='round'; ctx.stroke();
+      // ── SLIDE 2: Temple courtyard at dusk — Shiva blesses the boy ─────
+      // Purple → gold gradient sky
+      var s2Sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      s2Sky.addColorStop(0,   '#2A1040');
+      s2Sky.addColorStop(0.55,'#5A2060');
+      s2Sky.addColorStop(1,   '#C87820');
+      ctx.fillStyle = s2Sky; ctx.fillRect(0, 0, G.W, GROUND_Y);
+
+      // Temple courtyard floor (warm stone at dusk)
+      ctx.beginPath(); ctx.rect(0, GROUND_Y - 30, G.W, 200);
+      var s2Floor = ctx.createLinearGradient(0, GROUND_Y - 30, 0, GROUND_Y + 170);
+      s2Floor.addColorStop(0, '#7A5828');
+      s2Floor.addColorStop(1, '#3A2A10');
+      ctx.fillStyle = s2Floor; ctx.fill();
+
+      // Large golden mandala behind the centre — the emotional centrepiece
+      G.scenery.drawMandala(ctx, cx, GROUND_Y - 200, 280, t, 0.28);
+
+      // Falling marigold petals (continuous)
+      for (var mp = 0; mp < 16; mp++) {
+        var mpx = (mp * 0.063 * G.W + t * (10 + mp * 5)) % G.W;
+        var mpy = (GROUND_Y - 480 + (mp * 0.07 * 480 + t * (28 + mp * 4)) % 480);
+        if (mpy > 40 && mpy < GROUND_Y - 10) {
+          G.art.drawPetal(ctx, mpx, mpy, t + mp * 0.8);
+        }
+      }
+
+      // Rising sparkles (from ground up)
+      for (var rk = 0; rk < 12; rk++) {
+        var rkPhase = (t * 0.4 + rk * 0.083) % 1;
+        var rkx = cx - 200 + rk * 36 + Math.sin(t * 1.2 + rk) * 18;
+        var rky = GROUND_Y - rkPhase * 320;
+        var rkA = (1 - rkPhase) * 0.7;
+        if (rkA > 0.05) {
+          ctx.beginPath(); ctx.arc(rkx, rky, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255,230,80,' + rkA + ')'; ctx.fill();
+        }
+      }
+
+      // ── Lord Shiva — left, large, calm, blessing hand ─────────────
+      // scale 2.5 ≈ 440 px tall
+      G.art.drawShiva(ctx, cx - 320, GROUND_Y, t, { scale: 2.5, pose: 'bless' });
+
+      // ── Blessing glow flowing from Shiva's raised hand ─────────────
+      // Hand is roughly at (cx-320+40, GROUND_Y-270) at scale 2.5
+      var handX = cx - 270;
+      var handY = GROUND_Y - 300;
+      var blessIntensity = 0.45 + Math.sin(t * 2.5) * 0.15;
+      G.scenery.drawGlow(ctx, handX, handY, 180, '#FFD86B', blessIntensity * 0.6);
+
+      // Golden light bridge from hand toward the boy
+      var bridgeAlpha = 0.25 + Math.sin(t * 2) * 0.1;
+      var boyS2X = cx + 60;
+      var midBX  = (handX + boyS2X) / 2;
+      ctx.save();
+      ctx.globalAlpha = bridgeAlpha;
+      var bridge = ctx.createLinearGradient(handX, handY, boyS2X, GROUND_Y - 260);
+      bridge.addColorStop(0, 'rgba(255,220,80,0.8)');
+      bridge.addColorStop(1, 'rgba(255,200,60,0)');
+      ctx.beginPath();
+      ctx.moveTo(handX - 8, handY);
+      ctx.quadraticCurveTo(midBX, handY - 30, boyS2X, GROUND_Y - 260);
+      ctx.lineTo(boyS2X + 8, GROUND_Y - 260);
+      ctx.quadraticCurveTo(midBX + 8, handY - 22, handX + 8, handY);
+      ctx.closePath();
+      ctx.fillStyle = bridge; ctx.fill();
       ctx.restore();
-      // Orbiting light dots
-      for(var oi=0;oi<8;oi++){
-        var oa=(oi/8)*Math.PI*2+t*0.8;
-        var or=55+Math.sin(t*1.5+oi)*12;
-        G.art.circle(ctx,cx+60+Math.cos(oa)*or,cy+80+Math.sin(oa)*or*0.5,3,'rgba(255,230,100,0.7)');
+
+      // ── Crossfade boy → Ganesha ────────────────────────────────────
+      // progress: 0..1 over first 3 s; crossfade boy→Ganesha at 0.6-1.0
+      var s2prog = Math.min(1, _storySlideT / 3.0);
+      var boyAlpha2 = s2prog < 0.6 ? 1 : Math.max(0, 1 - (s2prog - 0.6) / 0.4);
+      var gnAlpha2  = s2prog < 0.6 ? 0 : Math.min(1, (s2prog - 0.6) / 0.4);
+
+      // Elephant head of light assembles above centre during blessing
+      G.scenery.drawElephantHeadOfLight(ctx, boyS2X, GROUND_Y - 240, s2prog, t);
+
+      // Boy (fades out)
+      if (boyAlpha2 > 0.02) {
+        ctx.save(); ctx.globalAlpha = boyAlpha2;
+        G.art.drawBoy(ctx, boyS2X, GROUND_Y, t, { state: 'idle', scale: 2.7 });
+        ctx.restore();
+      }
+      // Ganesha in celebrate pose (fades in with glow burst)
+      if (gnAlpha2 > 0.02) {
+        ctx.save(); ctx.globalAlpha = gnAlpha2;
+        // Burst glow behind Ganesha at moment of transformation
+        G.scenery.drawGlow(ctx, boyS2X, GROUND_Y - 150, 160, '#FFD86B', gnAlpha2 * 0.55);
+        G.art.drawGanesha(ctx, boyS2X, GROUND_Y, t, { state: 'celebrate', scale: 2.7 });
+        ctx.restore();
+      }
+
+      // ── Maa Parvati — far right, at the doorway, folded hands ──────
+      // scale 2.4 ≈ 396 px tall; fade in after 1 s
+      var parv2Alpha = Math.min(1, Math.max(0, (_storySlideT - 1.0) / 0.8));
+      if (parv2Alpha > 0.02) {
+        ctx.save(); ctx.globalAlpha = parv2Alpha;
+        G.art.drawParvati(ctx, G.W - 180, GROUND_Y, t, { scale: 2.4, pose: 'smile' });
+        ctx.restore();
       }
 
     } else if (_storySlide === 3) {

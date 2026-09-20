@@ -524,18 +524,290 @@ G.scenery = (function () {
     ctx.restore();
   }
 
+  // ── drawOrnateGateDoor(ctx, cx, groundY, t) ──────────────────────────────
+  // A big carved wooden door in a stone wall: arched, brass studs, gold frame,
+  // marigold torana, warm lit edges, stone steps and two pillar diyas.
+  // (cx, groundY) = centre of door base.
+  function drawOrnateGateDoor(ctx, cx, groundY, t) {
+    var flicker = Math.sin(t * 2.8) * 0.08;  // lamp flicker
+
+    // ── Stone wall behind the door ────────────────────────────────────
+    ctx.beginPath();
+    ctx.rect(cx - 320, groundY - 480, 640, 480);
+    ctx.fillStyle = '#6A5848'; ctx.fill();
+    // Stone coursing lines (horizontal)
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1;
+    for (var wy = groundY - 460; wy < groundY; wy += 32) {
+      ctx.beginPath(); ctx.moveTo(cx - 320, wy); ctx.lineTo(cx + 320, wy); ctx.stroke();
+    }
+    // Vertical joints (alternating offset per row)
+    for (var row = 0; row < 15; row++) {
+      var ry  = groundY - 32 * (row + 1);
+      var off = (row % 2 === 0) ? 0 : 48;
+      for (var jx = cx - 320 + off; jx < cx + 320; jx += 96) {
+        ctx.beginPath(); ctx.moveTo(jx, ry); ctx.lineTo(jx, ry + 32); ctx.stroke();
+      }
+    }
+
+    // ── Stone steps (two, wider at bottom) ───────────────────────────
+    ctx.beginPath(); ctx.rect(cx - 130, groundY - 14, 260, 14); ctx.fillStyle = '#8A7860'; ctx.fill();
+    ctx.strokeStyle = '#3A2A18'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.rect(cx - 100, groundY - 26, 200, 12); ctx.fillStyle = '#9A8870'; ctx.fill();
+    ctx.strokeStyle = '#3A2A18'; ctx.lineWidth = 1; ctx.stroke();
+
+    // ── Two stone pillars with decorative capitals ────────────────────
+    for (var ps = -1; ps <= 1; ps += 2) {
+      var px = cx + ps * 110;
+      // Pillar shaft
+      ctx.beginPath(); ctx.rect(px - 14, groundY - 440, 28, 400); ctx.fillStyle = '#C8B898'; ctx.fill();
+      ctx.strokeStyle = '#4A3820'; ctx.lineWidth = 1.2; ctx.stroke();
+      // Capital
+      ctx.beginPath(); ctx.ellipse(px, groundY - 440, 20, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#B0A080'; ctx.fill(); ctx.stroke();
+      // Decorative carved bands
+      ctx.strokeStyle = 'rgba(60,40,15,0.3)'; ctx.lineWidth = 1;
+      for (var cb = groundY - 420; cb > groundY - 440; cb -= 8) {
+        ctx.beginPath(); ctx.moveTo(px - 12, cb); ctx.lineTo(px + 12, cb); ctx.stroke();
+      }
+      // Diya on top of pillar capital
+      G.art.drawDiya(ctx, px, groundY - 450, true, t);
+    }
+
+    // ── Garland between pillar tops ────────────────────────────────────
+    // (two garlands: one high, one mid)
+    for (var gl = 0; gl < 2; gl++) {
+      var glY = groundY - 440 + gl * 30;
+      var glSag = 22 + gl * 10 + Math.sin(t * 0.5 + gl) * 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - 96, glY);
+      ctx.quadraticCurveTo(cx, glY + glSag, cx + 96, glY);
+      ctx.strokeStyle = G.COL.marigold; ctx.lineWidth = 3; ctx.stroke();
+      var garSteps = 7;
+      for (var gsi = 0; gsi <= garSteps; gsi++) {
+        var gf = gsi / garSteps;
+        var gx2 = cx - 96 + gf * 192;
+        var gy2 = glY + 4 * gf * (1 - gf) * glSag;
+        ctx.beginPath(); ctx.arc(gx2, gy2, 5, 0, Math.PI * 2);
+        ctx.fillStyle = gsi % 2 === 0 ? G.COL.marigold : G.COL.saffron; ctx.fill();
+        ctx.beginPath(); ctx.arc(gx2, gy2, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFEEAA'; ctx.fill();
+      }
+    }
+
+    // ── Torana arch above the door (marigold flower arch) ─────────────
+    var toranaSag = 16 + Math.sin(t * 0.4) * 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - 80, groundY - 390);
+    ctx.quadraticCurveTo(cx, groundY - 390 + toranaSag, cx + 80, groundY - 390);
+    ctx.strokeStyle = '#F28C28'; ctx.lineWidth = 5; ctx.stroke();
+    // Torana flowers
+    for (var tf = 0; tf <= 6; tf++) {
+      var tfrac = tf / 6;
+      var tx2 = cx - 80 + tfrac * 160;
+      var ty2 = groundY - 390 + 4 * tfrac * (1 - tfrac) * toranaSag;
+      ctx.beginPath(); ctx.arc(tx2, ty2, 7, 0, Math.PI * 2);
+      ctx.fillStyle = tf % 2 === 0 ? G.COL.marigold : '#FF6622'; ctx.fill();
+      ctx.beginPath(); ctx.arc(tx2, ty2, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFEEAA'; ctx.fill();
+    }
+
+    // ── Door frame and gold surround ──────────────────────────────────
+    // Gold outer frame
+    ctx.beginPath();
+    ctx.rect(cx - 86, groundY - 388, 172, 362);
+    ctx.fillStyle = '#4A3010'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, groundY - 388, 86, Math.PI, 0);
+    ctx.fillStyle = '#4A3010'; ctx.fill();
+    // Gold arch ring
+    ctx.beginPath(); ctx.arc(cx, groundY - 388, 86, Math.PI, 0);
+    ctx.strokeStyle = G.COL.goldDark; ctx.lineWidth = 4; ctx.stroke();
+    ctx.beginPath(); ctx.rect(cx - 86, groundY - 388, 172, 362);
+    ctx.strokeStyle = G.COL.goldDark; ctx.lineWidth = 4; ctx.stroke();
+
+    // Warm light leaking around door edges (glowing seams)
+    var leakAlpha = 0.30 + flicker;
+    ctx.save(); ctx.globalAlpha = leakAlpha;
+    var leakGrad = ctx.createLinearGradient(cx - 86, 0, cx - 72, 0);
+    leakGrad.addColorStop(0, 'rgba(255,180,60,0.9)');
+    leakGrad.addColorStop(1, 'rgba(255,180,60,0)');
+    ctx.fillStyle = leakGrad;
+    ctx.fillRect(cx - 88, groundY - 390, 16, 364);
+    var leakGradR = ctx.createLinearGradient(cx + 86, 0, cx + 72, 0);
+    leakGradR.addColorStop(0, 'rgba(255,180,60,0.9)');
+    leakGradR.addColorStop(1, 'rgba(255,180,60,0)');
+    ctx.fillStyle = leakGradR;
+    ctx.fillRect(cx + 72, groundY - 390, 16, 364);
+    ctx.restore();
+
+    // Warm floor glow from door light
+    var floorGlow = ctx.createRadialGradient(cx, groundY - 26, 10, cx, groundY - 26, 120);
+    floorGlow.addColorStop(0, 'rgba(255,200,80,' + (0.22 + flicker) + ')');
+    floorGlow.addColorStop(1, 'rgba(255,180,60,0)');
+    ctx.beginPath(); ctx.ellipse(cx, groundY - 26, 120, 30, 0, 0, Math.PI * 2);
+    ctx.fillStyle = floorGlow; ctx.fill();
+
+    // ── Door panels — dark carved wood ────────────────────────────────
+    // Two door halves
+    for (var dh = -1; dh <= 1; dh += 2) {
+      var dhx = cx + dh * 40;
+      // Door face
+      ctx.beginPath();
+      ctx.rect(dhx - 38, groundY - 382, 76, 356);
+      ctx.fillStyle = '#3A2010'; ctx.fill();
+      // Carved panel insets (3 per half)
+      for (var dp = 0; dp < 3; dp++) {
+        var dpy = groundY - 360 + dp * 110;
+        ctx.beginPath(); ctx.rect(dhx - 28, dpy, 56, 90); ctx.fillStyle = '#2E1808'; ctx.fill();
+        ctx.strokeStyle = G.COL.goldDark; ctx.lineWidth = 1.5; ctx.stroke();
+        // Panel motif: a simple diamond
+        ctx.beginPath();
+        ctx.moveTo(dhx, dpy + 8); ctx.lineTo(dhx + 20, dpy + 45);
+        ctx.lineTo(dhx, dpy + 82); ctx.lineTo(dhx - 20, dpy + 45);
+        ctx.closePath(); ctx.strokeStyle = 'rgba(255,200,80,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
+      }
+      // Brass studs (4x4 grid per half)
+      ctx.fillStyle = G.COL.goldDark;
+      for (var sr = 0; sr < 4; sr++) {
+        for (var sc2 = 0; sc2 < 2; sc2++) {
+          var sx = dhx - 22 + sc2 * 44;
+          var sy = groundY - 370 + sr * 90;
+          ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+          ctx.fillStyle = G.COL.goldLight; ctx.fill();
+          ctx.fillStyle = G.COL.goldDark;
+        }
+      }
+    }
+    // Arch panel (top)
+    ctx.beginPath(); ctx.arc(cx, groundY - 388, 78, Math.PI, 0);
+    ctx.fillStyle = '#2E1808'; ctx.fill();
+    // Arch decoration: concentric arcs
+    for (var ar2 = 0; ar2 < 3; ar2++) {
+      ctx.beginPath(); ctx.arc(cx, groundY - 388, 68 - ar2 * 16, Math.PI, 0);
+      ctx.strokeStyle = 'rgba(255,200,80,' + (0.4 - ar2 * 0.1) + ')'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+  }
+
+  // ── drawShivaSilhouette(ctx, x, groundY, alpha) ───────────────────────────
+  // Small distant silhouette of Shiva walking calmly on a path.
+  // Used far-right in slide 1 (anticipation, no drama).
+  function drawShivaSilhouette(ctx, x, groundY, alpha, t) {
+    alpha = alpha !== undefined ? alpha : 0.55;
+    var bob = Math.sin(t * 1.2) * 1.5;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, groundY + bob);
+    ctx.scale(0.45, 0.45);  // small and distant
+
+    // Soft glow behind the silhouette
+    var sg = ctx.createRadialGradient(0, -80, 10, 0, -80, 70);
+    sg.addColorStop(0, 'rgba(255,220,120,0.35)');
+    sg.addColorStop(1, 'rgba(255,180,60,0)');
+    ctx.beginPath(); ctx.arc(0, -80, 70, 0, Math.PI * 2);
+    ctx.fillStyle = sg; ctx.fill();
+
+    // Simple dark silhouette: dhoti + tall jata + trishul beside
+    // Dhoti oval
+    ctx.beginPath(); ctx.ellipse(0, -20, 18, 22, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A0A00'; ctx.fill();
+    // Torso
+    ctx.beginPath(); ctx.ellipse(0, -55, 13, 15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A0A00'; ctx.fill();
+    // Head
+    ctx.beginPath(); ctx.ellipse(0, -82, 12, 13, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A0A00'; ctx.fill();
+    // Jata (tall top-knot bump)
+    ctx.beginPath(); ctx.moveTo(-8, -90); ctx.bezierCurveTo(-8, -114, 8, -114, 8, -90);
+    ctx.fillStyle = '#1A0A00'; ctx.fill();
+    // Trishul line (simple vertical + 3 tips)
+    ctx.beginPath(); ctx.moveTo(22, 0); ctx.lineTo(22, -110);
+    ctx.strokeStyle = 'rgba(255,210,80,0.65)'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(22, -110); ctx.lineTo(18, -126); ctx.lineTo(22, -122);
+    ctx.lineTo(26, -126); ctx.lineTo(22, -110);
+    ctx.strokeStyle = 'rgba(255,210,80,0.65)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // ── drawElephantHeadOfLight(ctx, cx, cy, progress, t) ────────────────────
+  // For slide 2: a glowing elephant-head silhouette assembles above the boy
+  // then "settles" down as progress goes 0→1.  progress = _storySlideT / 3.
+  function drawElephantHeadOfLight(ctx, cx, cy, progress, t) {
+    var prog = Math.max(0, Math.min(1, progress));
+    if (prog <= 0) return;
+
+    var alpha = Math.min(1, prog * 1.5);
+    // Position: starts 80px above centre, drifts down to cy as progress→1
+    var headY = cy - 80 * (1 - prog);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, headY);
+
+    // Pulse ring
+    var pulse = 0.7 + Math.sin(t * 3) * 0.15;
+    var size = (prog < 0.5) ? prog * 2 : 1;  // scale in from 0 to 1
+
+    ctx.scale(size * 1.8, size * 1.8);
+
+    // Outer light aura
+    var aura = ctx.createRadialGradient(0, 0, 10, 0, 0, 70);
+    aura.addColorStop(0,   'rgba(255,230,80,' + pulse * 0.6 + ')');
+    aura.addColorStop(0.5, 'rgba(255,180,40,' + pulse * 0.3 + ')');
+    aura.addColorStop(1,   'rgba(255,160,20,0)');
+    ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2);
+    ctx.fillStyle = aura; ctx.fill();
+
+    // Petal ring orbiting the head (8 petals)
+    for (var pi4 = 0; pi4 < 8; pi4++) {
+      var pa = (pi4 / 8) * Math.PI * 2 + t * 1.2;
+      var pr = 44;
+      ctx.save();
+      ctx.translate(Math.cos(pa) * pr, Math.sin(pa) * pr * 0.5);
+      ctx.rotate(pa);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 5, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = pi4 % 2 === 0 ? G.COL.goldLight : G.COL.marigold;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Head shape (light silhouette: round head + big ears + trunk suggestion)
+    ctx.fillStyle = 'rgba(255,230,100,' + (pulse * 0.8) + ')';
+    // Main head
+    ctx.beginPath(); ctx.ellipse(0, -4, 24, 22, 0, 0, Math.PI * 2); ctx.fill();
+    // Left ear
+    ctx.beginPath(); ctx.ellipse(-28, -6, 14, 18, -0.25, 0, Math.PI * 2); ctx.fill();
+    // Right ear
+    ctx.beginPath(); ctx.ellipse(28, -6, 14, 18, 0.25, 0, Math.PI * 2); ctx.fill();
+    // Trunk curl
+    ctx.beginPath();
+    ctx.moveTo(6, 12);
+    ctx.bezierCurveTo(18, 22, 22, 34, 14, 38);
+    ctx.bezierCurveTo(8, 42, 4, 38, 6, 34);
+    ctx.strokeStyle = 'rgba(255,230,100,' + (pulse * 0.8) + ')';
+    ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.stroke();
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
   return {
-    drawSky:            drawSky,
-    drawStars:          drawStars,
-    drawMoon:           drawMoon,
-    drawGlow:           drawGlow,
-    drawMountainRange:  drawMountainRange,
-    drawKailashHome:    drawKailashHome,
-    drawDiya:           drawDiya,
-    drawMarigoldGarland: drawMarigoldGarland,
-    drawFloatingPetals: drawFloatingPetals,
-    drawMandala:        drawMandala,
+    drawSky:                 drawSky,
+    drawStars:               drawStars,
+    drawMoon:                drawMoon,
+    drawGlow:                drawGlow,
+    drawMountainRange:       drawMountainRange,
+    drawKailashHome:         drawKailashHome,
+    drawDiya:                drawDiya,
+    drawMarigoldGarland:     drawMarigoldGarland,
+    drawFloatingPetals:      drawFloatingPetals,
+    drawMandala:             drawMandala,
+    drawOrnateGateDoor:      drawOrnateGateDoor,
+    drawShivaSilhouette:     drawShivaSilhouette,
+    drawElephantHeadOfLight: drawElephantHeadOfLight,
   };
 
 }());
