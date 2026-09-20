@@ -155,13 +155,16 @@
   }
 
   // ── Boot ──────────────────────────────────────────────────────────────
-  // Start with the first scene once everything is defined.
-  // Use a short delay so all scene files have registered themselves.
+  // Check URL for ?debug=art to open the art gallery directly.
   window.addEventListener('load', function () {
     lastTime = performance.now();
     requestAnimationFrame(loop);
-    // Go to the test scene defined in title.js
-    G.sceneManager.goto('test');
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('debug') === 'art') {
+      G.sceneManager.goto('artGallery');
+    } else {
+      G.sceneManager.goto('test');
+    }
   });
 
 })();
