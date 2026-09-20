@@ -1842,113 +1842,764 @@ G.art = (function () {
   // ╔══════════════════════════════════════════════════════════════╗
   // ║  KARTIKEYA with peacock                                     ║
   // ╚══════════════════════════════════════════════════════════════╝
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  LORD KARTIKEYA — full redraw, children's-book flat-vector style ║
+  // ║  Signature kept: drawKartikeya(ctx, x, y, t, opts)              ║
+  // ║  opts = { scale, dir, pose }                                     ║
+  // ║    dir  : 1 (front, legacy) | -1 | 'down'(front) | 'up'(back)  ║
+  // ║           'left' | 'right'                                       ║
+  // ║    pose : 'stand'|'run'|'cheer'|'bow'  (default 'stand')        ║
+  // ║    scale: number (default 1). Scale 1 ≈ 154 px tall.            ║
+  // ║  (x,y) = feet centre-bottom.                                     ║
+  // ╚══════════════════════════════════════════════════════════════════╝
+
+  // ── Colour palette (module-level shorthand) ──────────────────────────
+  var _KT_SKIN   = '#EBB98A';
+  var _KT_SHADE  = '#D09A6A';
+  var _KT_HI     = '#FCD9B0';
+  var _KT_HAIR   = '#1A0A00';
+  var _KT_DHOTI  = '#B3262F';
+  var _KT_DHOLD  = '#8A1A20';  // dhoti dark
+  var _KT_GOLD   = '#F5C242';
+  var _KT_GOLDD  = '#C89020';  // gold dark
+  var _KT_GOLDDL = '#FFE880';  // gold light
+  var _KT_VEL    = '#E8C040';  // vel lance body
+
+  // ── Outline helper ───────────────────────────────────────────────────
+  function _ktLine(ctx, w) {
+    ctx.strokeStyle = C.outline;
+    ctx.lineWidth   = w || 1.8;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+  }
+
+  // ── Gold gradient ─────────────────────────────────────────────────────
+  function _ktGold(ctx, cx, cy, r) {
+    var g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r * 1.2);
+    g.addColorStop(0, _KT_GOLDDL);
+    g.addColorStop(1, _KT_GOLDD);
+    return g;
+  }
+
+  // ── Halo disc with short rays ─────────────────────────────────────────
+  function _ktHalo(ctx, t) {
+    var grd = ctx.createRadialGradient(0, -96, 10, 0, -96, 36);
+    grd.addColorStop(0,   'rgba(255,230,100,0.75)');
+    grd.addColorStop(0.6, 'rgba(255,210,60,0.30)');
+    grd.addColorStop(1,   'rgba(255,200,40,0)');
+    ctx.beginPath(); ctx.arc(0, -96, 34, 0, Math.PI * 2);
+    ctx.fillStyle = grd; ctx.fill();
+    // 8 short rays
+    ctx.strokeStyle = 'rgba(255,230,80,0.55)'; ctx.lineWidth = 1.5;
+    for (var ri = 0; ri < 8; ri++) {
+      var ra = (ri / 8) * Math.PI * 2 + t * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(ra) * 28, -96 + Math.sin(ra) * 28);
+      ctx.lineTo(Math.cos(ra) * 38, -96 + Math.sin(ra) * 38);
+      ctx.stroke();
+    }
+  }
+
+  // ── Crown (tall, 3-tier, red jewel, pearls) ───────────────────────────
+  function _ktCrown(ctx) {
+    // Base band
+    ctx.beginPath(); ctx.ellipse(0, -103, 13, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _ktGold(ctx, 0, -103, 13); ctx.fill(); _ktLine(ctx, 1.2);
+    // Middle tier
+    roundRect(ctx, -10, -113, 20, 11, 3, null);
+    ctx.fillStyle = _ktGold(ctx, 0, -108, 10); ctx.fill(); _ktLine(ctx, 1.2);
+    // Top tier
+    ctx.beginPath();
+    ctx.moveTo(-6, -113); ctx.lineTo(0, -126); ctx.lineTo(6, -113);
+    ctx.closePath();
+    ctx.fillStyle = _ktGold(ctx, 0, -118, 8); ctx.fill(); _ktLine(ctx, 1.2);
+    // Red jewel
+    circle(ctx, 0, -118, 3.5, '#CC2020');
+    ctx.beginPath(); ctx.arc(0, -118, 3.5, 0, Math.PI * 2);
+    ctx.strokeStyle = _KT_GOLDD; ctx.lineWidth = 1; ctx.stroke();
+    // Small pearls on base band
+    for (var pi = -1; pi <= 1; pi++) {
+      circle(ctx, pi * 6, -103, 2, '#F8F0E8');
+    }
+  }
+
+  // ── Gold earring ─────────────────────────────────────────────────────
+  function _ktEarrings(ctx) {
+    ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(-11, -88, 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc( 11, -88, 4, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // ── Head + face ───────────────────────────────────────────────────────
+  function _ktHead(ctx, t, pose) {
+    // Head base
+    ctx.beginPath(); ctx.ellipse(0, -88, 14, 15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.8);
+    // Shade (chin)
+    ctx.beginPath(); ctx.ellipse(0, -80, 9, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SHADE; ctx.fill();
+    // Highlight (forehead)
+    ctx.beginPath(); ctx.ellipse(-3, -95, 6, 4, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_HI; ctx.fill();
+    // Hair (back and top)
+    ctx.beginPath();
+    ctx.arc(0, -95, 13, Math.PI, 0);
+    ctx.fillStyle = _KT_HAIR; ctx.fill();
+    // Hair side lock left
+    ctx.beginPath();
+    ctx.moveTo(-12, -90); ctx.bezierCurveTo(-18, -88, -16, -80, -12, -78);
+    ctx.fillStyle = _KT_HAIR; ctx.fill();
+    // Hair side lock right
+    ctx.beginPath();
+    ctx.moveTo(12, -90); ctx.bezierCurveTo(18, -88, 16, -80, 12, -78);
+    ctx.fillStyle = _KT_HAIR; ctx.fill();
+    // Tilak
+    ctx.beginPath(); ctx.ellipse(0, -95, 2, 3.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#CC2020'; ctx.fill();
+    // Eyes
+    circle(ctx, -5.5, -88, 4, '#FFFAE8');
+    circle(ctx,  5.5, -88, 4, '#FFFAE8');
+    circle(ctx, -5.5, -88, 2.5, '#2A1A00');
+    circle(ctx,  5.5, -88, 2.5, '#2A1A00');
+    // Catchlights
+    circle(ctx, -4.5, -89, 1, '#FFFFFF');
+    circle(ctx,  6.5, -89, 1, '#FFFFFF');
+    // Eyelashes (short stroke over each eye)
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-8, -91); ctx.lineTo(-7, -94); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-5.5, -92); ctx.lineTo(-5, -95); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -91); ctx.lineTo(7, -94); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5.5, -92); ctx.lineTo(5, -95); ctx.stroke();
+    // Smile
+    var smileW = pose === 'cheer' ? 8 : 6;
+    ctx.beginPath();
+    ctx.arc(0, -83, smileW, 0.15, Math.PI - 0.15);
+    ctx.strokeStyle = '#7A3010'; ctx.lineWidth = 1.8; ctx.stroke();
+    // Cheek blush (cheer/bow)
+    if (pose === 'cheer' || pose === 'bow') {
+      ctx.beginPath(); ctx.ellipse(-8, -84, 4, 2.5, -0.2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(240,140,120,0.40)'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse( 8, -84, 4, 2.5,  0.2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(240,140,120,0.40)'; ctx.fill();
+    }
+  }
+
+  // ── Marigold garland across chest ─────────────────────────────────────
+  function _ktGarland(ctx) {
+    ctx.strokeStyle = '#3A5A10'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-12, -56); ctx.quadraticCurveTo(0, -48, 12, -56); ctx.stroke();
+    // Flowers along string
+    var gFlowers = [[-10,-54],[-4,-50],[3,-50],[10,-54]];
+    gFlowers.forEach(function(f) {
+      circle(ctx, f[0], f[1], 3.5, G.COL.marigold);
+      circle(ctx, f[0], f[1], 1.5, _KT_GOLD);
+    });
+  }
+
+  // ── Torso + armbands ─────────────────────────────────────────────────
+  function _ktTorso(ctx, pose, armSwingR, armSwingL) {
+    // Back torso (order: torso then arms)
+    ctx.beginPath(); ctx.ellipse(0, -62, 13, 14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.6);
+    // Shade stripe
+    ctx.beginPath(); ctx.ellipse(3, -60, 6, 9, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SHADE; ctx.fill();
+    // Highlight stripe
+    ctx.beginPath(); ctx.ellipse(-4, -68, 4, 6, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_HI; ctx.fill();
+
+    // ── Right arm ────────────────────────────────────────────────────
+    ctx.save();
+    ctx.translate(13, -68);
+    ctx.rotate(armSwingR);
+    // Upper arm
+    roundRect(ctx, -4, 0, 9, 20, 4, _KT_SKIN);
+    ctx.beginPath(); ctx.ellipse(0.5, 10, 4, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.4);
+    // Armband
+    ctx.beginPath(); ctx.ellipse(0.5, 3, 4.5, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _ktGold(ctx, 0.5, 3, 4.5); ctx.fill(); _ktLine(ctx, 1);
+    // Hand
+    circle(ctx, 0.5, 20, 4, _KT_SKIN);
+    ctx.restore();
+
+    // ── Left arm ─────────────────────────────────────────────────────
+    ctx.save();
+    ctx.translate(-13, -68);
+    ctx.rotate(armSwingL);
+    roundRect(ctx, -5, 0, 9, 20, 4, _KT_SKIN);
+    ctx.beginPath(); ctx.ellipse(-0.5, 10, 4, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.4);
+    ctx.beginPath(); ctx.ellipse(-0.5, 3, 4.5, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _ktGold(ctx, -0.5, 3, 4.5); ctx.fill(); _ktLine(ctx, 1);
+    circle(ctx, -0.5, 20, 4, _KT_SKIN);
+    ctx.restore();
+
+    // Bracelet right
+    ctx.save(); ctx.translate(13, -48);
+    ctx.beginPath(); ctx.ellipse(0.5, 0, 4, 2.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_GOLD; ctx.fill(); ctx.restore();
+    // Bracelet left
+    ctx.save(); ctx.translate(-13, -48);
+    ctx.beginPath(); ctx.ellipse(-0.5, 0, 4, 2.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_GOLD; ctx.fill(); ctx.restore();
+  }
+
+  // ── Cheer pose: one fist raised high ─────────────────────────────────
+  function _ktCheerArms(ctx) {
+    // Right arm raised straight up (fist)
+    ctx.save(); ctx.translate(13, -68); ctx.rotate(-0.9);
+    roundRect(ctx, -4, -22, 9, 24, 4, _KT_SKIN);
+    ctx.beginPath(); ctx.ellipse(0.5, -22, 5, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.4);
+    ctx.beginPath(); ctx.ellipse(0.5, 5, 4.5, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _ktGold(ctx, 0.5, 5, 4.5); ctx.fill(); ctx.restore();
+    // Left arm relaxed
+    ctx.save(); ctx.translate(-13, -68); ctx.rotate(0.25);
+    roundRect(ctx, -5, 0, 9, 20, 4, _KT_SKIN);
+    ctx.beginPath(); ctx.ellipse(-0.5, 3, 4.5, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _ktGold(ctx, -0.5, 3, 4.5); ctx.fill(); ctx.restore();
+  }
+
+  // ── Bow pose: hands folded at chest ──────────────────────────────────
+  function _ktBowArms(ctx) {
+    // Both arms folded inward at chest height
+    ctx.save(); ctx.translate(0, -65); ctx.rotate(0);
+    // Right forearm
+    ctx.beginPath();
+    ctx.moveTo(12, 0); ctx.bezierCurveTo(8, -4, 0, -6, -4, -2);
+    ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 8; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    // Left forearm
+    ctx.beginPath();
+    ctx.moveTo(-12, 0); ctx.bezierCurveTo(-8, -4, 0, -6, 4, -2);
+    ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 8; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    // Clasped hands
+    ctx.beginPath(); ctx.ellipse(0, -4, 7, 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+    ctx.restore();
+  }
+
+  // ── Dhoti (red maroon, gold border, yellow sash) ──────────────────────
+  function _ktDhoti(ctx, pose) {
+    var lean = (pose === 'run') ? 0.08 : 0;
+    // Sash (yellow, behind dhoti)
+    ctx.beginPath();
+    ctx.moveTo(-6, -42); ctx.bezierCurveTo(-10, -20, -14, 4, -10, 12);
+    ctx.lineWidth = 6; ctx.strokeStyle = _KT_GOLD; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(6, -42); ctx.bezierCurveTo(10, -20, 14, 4, 10, 12);
+    ctx.lineWidth = 6; ctx.strokeStyle = _KT_GOLD; ctx.stroke();
+
+    // Dhoti main
+    ctx.save(); ctx.rotate(lean);
+    ctx.beginPath();
+    ctx.moveTo(-14, -42);
+    ctx.bezierCurveTo(-16, -20, -14, -6, -10, 0);
+    ctx.bezierCurveTo(-6, 4, 6, 4, 10, 0);
+    ctx.bezierCurveTo(14, -6, 16, -20, 14, -42);
+    ctx.closePath();
+    ctx.fillStyle = _KT_DHOTI; ctx.fill(); _ktLine(ctx, 1.6);
+    // Shade (left fold)
+    ctx.beginPath(); ctx.ellipse(-6, -24, 5, 14, -0.1, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_DHOLD; ctx.fill();
+    // Gold border
+    ctx.beginPath();
+    ctx.moveTo(-10, 0); ctx.bezierCurveTo(-6, 6, 6, 6, 10, 0);
+    ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 3; ctx.stroke();
+    ctx.restore();
+
+    // Legs (bare)
+    // Right leg
+    ctx.beginPath();
+    ctx.moveTo(6, 0); ctx.bezierCurveTo(8, 14, 7, 28, 6, 38);
+    ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 9; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    // Left leg
+    ctx.beginPath();
+    ctx.moveTo(-6, 0); ctx.bezierCurveTo(-8, 14, -7, 28, -6, 38);
+    ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 9; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    // Feet
+    ctx.beginPath(); ctx.ellipse(7, 38, 7, 4, 0.15, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+    ctx.beginPath(); ctx.ellipse(-7, 38, 7, 4, -0.15, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+  }
+
+  // ── Run pose legs ────────────────────────────────────────────────────
+  function _ktRunLegs(ctx, t) {
+    var sw = Math.sin(t * 8) * 0.35;
+    // Right leg
+    ctx.save(); ctx.translate(6, 0); ctx.rotate(sw);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(1, 20);
+    ctx.lineTo(4, 38); ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 9; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(5, 38, 7, 4, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+    ctx.restore();
+    // Left leg (counter-phase)
+    ctx.save(); ctx.translate(-6, 0); ctx.rotate(-sw);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-1, 20);
+    ctx.lineTo(-4, 38); ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 9; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(-5, 38, 7, 4, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+    ctx.restore();
+  }
+
+  // ── Vel (golden lance, planted upright, leaf tip) ────────────────────
+  function _ktVel(ctx) {
+    // Shaft
+    ctx.strokeStyle = _KT_VEL; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(22, 38); ctx.lineTo(22, -80); ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.2; ctx.stroke();
+    // Gold grip ring
+    ctx.beginPath(); ctx.ellipse(22, -15, 5, 3.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_GOLD; ctx.fill();
+    // Leaf-shaped tip
+    ctx.beginPath();
+    ctx.moveTo(22, -80);
+    ctx.bezierCurveTo(15, -92, 15, -102, 22, -108);
+    ctx.bezierCurveTo(29, -102, 29, -92, 22, -80);
+    ctx.fillStyle = _ktGold(ctx, 22, -95, 10); ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    // Central rib
+    ctx.strokeStyle = 'rgba(255,220,80,0.7)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(22, -80); ctx.lineTo(22, -108); ctx.stroke();
+  }
+
+  // ── BACK VIEW helpers ─────────────────────────────────────────────────
+  function _ktBackHead(ctx, t) {
+    // Head from behind
+    ctx.beginPath(); ctx.ellipse(0, -88, 14, 15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _KT_HAIR; ctx.fill(); _ktLine(ctx, 1.8);
+    // Hair shine
+    ctx.beginPath(); ctx.ellipse(-3, -94, 6, 8, -0.1, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(80,40,0,0.25)'; ctx.fill();
+    // Crown from behind
+    ctx.beginPath(); ctx.ellipse(0, -103, 13, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _ktGold(ctx, 0, -103, 13); ctx.fill(); _ktLine(ctx, 1.2);
+    roundRect(ctx, -10, -114, 20, 11, 3, null);
+    ctx.fillStyle = _ktGold(ctx, 0, -108, 10); ctx.fill(); _ktLine(ctx, 1.2);
+    ctx.beginPath();
+    ctx.moveTo(-6, -114); ctx.lineTo(0, -127); ctx.lineTo(6, -114); ctx.closePath();
+    ctx.fillStyle = _ktGold(ctx, 0, -119, 8); ctx.fill(); _ktLine(ctx, 1.2);
+    // Sash tails streaming back
+    ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(-8, -42); ctx.bezierCurveTo(-16, -20, -18, 8, -14, 24); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -42);  ctx.bezierCurveTo(16, -20, 18, 8, 14, 24);  ctx.stroke();
+  }
+
+  // ── Main drawKartikeya ────────────────────────────────────────────────
   function drawKartikeya(ctx, x, y, t, opts) {
     opts = opts || {};
-    var sc  = opts.scale || 1;
-    var dir = opts.dir   || 1;
-    var bob = Math.sin(t * 2.5) * 2;
+    var sc   = opts.scale || 1;
+    var pose = opts.pose  || 'stand';
 
-    ovalShadow(ctx, x, y, 30 * sc, 7 * sc);
-    ctx.save();
-    ctx.translate(x, y + bob);
-    ctx.scale(dir * sc, sc);
+    // Normalise dir: legacy numeric 1/-1 → 'down'/'down' (both treated as front)
+    var dirRaw = opts.dir !== undefined ? opts.dir : 'down';
+    var isBack  = (dirRaw === 'up'   || dirRaw === 2);
+    var isSideL = (dirRaw === 'left' || dirRaw === -1);
+    var isSideR = (dirRaw === 'right');
+    // Default front for numeric 1 or undefined
+    var isFront = (!isBack && !isSideL && !isSideR);
+    var flipX   = isSideL ? -1 : 1;
 
-    // ── Peacock (behind, offset left) ─────────────────────────────────
+    // Idle bob only for 'stand'
+    var bob = (pose === 'stand') ? Math.sin(t * 2.2) * 1.8 : 0;
+    // Bow: head tilts forward
+    var headTilt = (pose === 'bow') ? 0.32 : 0;
+
+    ovalShadow(ctx, x, y, 18 * sc, 5 * sc);
     ctx.save();
-    ctx.translate(-22, -10);
-    // Body
-    ellipse(ctx, 0, -16, 12, 10, '#2A7A3A');
-    // Neck
-    ellipse(ctx, 8, -26, 4, 8, '#1A5A8A');
-    // Head
-    circle(ctx, 10, -33, 5, '#1A5A8A');
-    // Crown feathers
-    for (var pf = -1; pf <= 1; pf++) {
+    ctx.translate(x, y + bob * sc);
+    ctx.scale(flipX * sc, sc);
+
+    if (isBack) {
+      // ── BACK VIEW ────────────────────────────────────────────────────
+      _ktHalo(ctx, t);
+      _ktBackHead(ctx, t);
+      // Back torso
+      ctx.beginPath(); ctx.ellipse(0, -62, 13, 14, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.6);
+      ctx.beginPath(); ctx.ellipse(0, -54, 8, 6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SHADE; ctx.fill();
+      // Back arms (streaming back in run, relaxed in stand)
+      var bArmR = (pose === 'run') ? -0.4 : 0.15;
+      var bArmL = (pose === 'run') ?  0.4 : -0.15;
+      ctx.save(); ctx.translate(13, -68); ctx.rotate(bArmR);
+      roundRect(ctx, -4, 0, 9, 20, 4, _KT_SKIN); _ktLine(ctx, 1.2);
+      ctx.beginPath(); ctx.ellipse(0.5, 3, 4.5, 3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _ktGold(ctx, 0.5, 3, 4.5); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(-13, -68); ctx.rotate(bArmL);
+      roundRect(ctx, -5, 0, 9, 20, 4, _KT_SKIN); _ktLine(ctx, 1.2);
+      ctx.beginPath(); ctx.ellipse(-0.5, 3, 4.5, 3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _ktGold(ctx, -0.5, 3, 4.5); ctx.fill(); ctx.restore();
+      // Dhoti back
       ctx.beginPath();
-      ctx.moveTo(10 + pf * 4, -38);
-      ctx.lineTo(10 + pf * 3, -46);
-      ctx.strokeStyle = '#2A9A4A';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      circle(ctx, 10 + pf * 3, -47, 2, '#2A9A4A');
+      ctx.moveTo(-14, -42); ctx.bezierCurveTo(-16, -20, -14, -6, -10, 0);
+      ctx.bezierCurveTo(-6, 4, 6, 4, 10, 0);
+      ctx.bezierCurveTo(14, -6, 16, -20, 14, -42); ctx.closePath();
+      ctx.fillStyle = _KT_DHOTI; ctx.fill(); _ktLine(ctx, 1.6);
+      ctx.beginPath(); ctx.moveTo(-10, 0); ctx.bezierCurveTo(-6, 6, 6, 6, 10, 0);
+      ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 3; ctx.stroke();
+      // Legs
+      if (pose === 'run') { _ktRunLegs(ctx, t); }
+      else {
+        ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(6, 38);
+        ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 9; ctx.stroke();
+        ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(-6, 38);
+        ctx.strokeStyle = _KT_SKIN; ctx.lineWidth = 9; ctx.stroke();
+        ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(7, 38, 7, 4, 0.15, 0, Math.PI * 2);
+        ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+        ctx.beginPath(); ctx.ellipse(-7, 38, 7, 4, -0.15, 0, Math.PI * 2);
+        ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+      }
+
+    } else if (isSideL || isSideR) {
+      // ── SIDE VIEW ────────────────────────────────────────────────────
+      // Draw facing right; flip handled by ctx.scale above
+      _ktHalo(ctx, t);
+      _ktCrown(ctx);
+      _ktEarrings(ctx);
+      _ktHead(ctx, t, pose);
+      _ktDhoti(ctx, pose);
+      if (pose === 'run')   { _ktRunLegs(ctx, t); }
+      if (pose === 'cheer') { _ktCheerArms(ctx); }
+      else if (pose === 'bow') { _ktBowArms(ctx); }
+      else {
+        var sArmR = (pose === 'run') ? Math.sin(t * 8) * 0.4 : 0.2;
+        var sArmL = (pose === 'run') ? -Math.sin(t * 8) * 0.4 : -0.15;
+        _ktTorso(ctx, pose, sArmR, sArmL);
+      }
+      _ktGarland(ctx);
+      // Side vel (behind, slightly angled)
+      ctx.save(); ctx.translate(14, 0); ctx.rotate(-0.12);
+      _ktVel(ctx);
+      ctx.restore();
+
+    } else {
+      // ── FRONT VIEW (default) ─────────────────────────────────────────
+      _ktHalo(ctx, t);
+      _ktCrown(ctx);
+      _ktEarrings(ctx);
+      // Head tilt for bow
+      ctx.save(); ctx.translate(0, 0); ctx.rotate(headTilt);
+      _ktHead(ctx, t, pose);
+      ctx.restore();
+      _ktDhoti(ctx, pose);
+      if (pose === 'run') {
+        _ktRunLegs(ctx, t);
+        var rSwR = Math.sin(t * 8) * 0.5;
+        _ktTorso(ctx, pose, -rSwR, rSwR);
+      } else if (pose === 'cheer') {
+        _ktCheerArms(ctx);
+      } else if (pose === 'bow') {
+        _ktBowArms(ctx);
+        // Slight forward body lean
+        ctx.save(); ctx.rotate(0.18);
+        ctx.beginPath(); ctx.ellipse(0, -62, 13, 14, 0, 0, Math.PI * 2);
+        ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.6);
+        ctx.restore();
+      } else {
+        _ktTorso(ctx, pose, 0.1, -0.1);
+      }
+      _ktGarland(ctx);
+      // Vel planted beside (right side)
+      _ktVel(ctx);
     }
-    // Tail feathers (fan)
-    var featherColors = ['#2A7A3A', '#1A5A8A', '#3AB04A', '#1A7AAA'];
-    for (var fi = -3; fi <= 3; fi++) {
+
+    ctx.restore();
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  PEACOCK — Lord Kartikeya's vahana                              ║
+  // ║  drawPeacock(ctx, x, y, t, opts)                                ║
+  // ║  opts = { scale, dir, pose }                                     ║
+  // ║    dir  : 'down'(front) | 'up'(back/spread fan) | 'left'|'right'║
+  // ║    pose : 'stand' | 'run'                                        ║
+  // ╚══════════════════════════════════════════════════════════════════╝
+
+  var _PCK_BODY  = '#1F5E9B';
+  var _PCK_NECK  = '#2A7FBF';
+  var _PCK_HI    = '#4AA8E0';
+  var _PCK_BEAK  = '#E89030';
+  var _PCK_WING  = '#3A5080';
+  var _PCK_WINGE = '#E8D8B0';  // wing edge cream
+  var _PCK_TAIL  = '#1A7A50';  // tail green-teal
+  var _PCK_TAILD = '#105838';
+  var _PCK_EYE   = '#28A890';  // eye-spot teal
+
+  function _pckTailFan(ctx, t, collapsed) {
+    // 7 tail feathers in an arc. collapsed = feathers stream back (run back-view)
+    var nF = 7;
+    for (var fi = 0; fi < nF; fi++) {
+      var ang = collapsed
+        ? (-0.18 + fi * 0.06) // streaming: narrow fan pointing right
+        : (-Math.PI * 0.55 + fi * (Math.PI * 1.1 / (nF - 1))); // spread arc
+      var fLen = 72 + (fi === 3 ? 10 : 0); // centre feather longest
+      var shimmer = 1 + Math.sin(t * 2.5 + fi * 0.8) * 0.06;
+      var fLenS = fLen * shimmer;
       ctx.save();
-      ctx.translate(-6, -18);
-      ctx.rotate(fi * 0.25);
+      ctx.rotate(ang);
+      // Feather shaft
+      ctx.strokeStyle = _PCK_TAILD; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -fLenS); ctx.stroke();
+      // Feather blade (leaf shape)
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(-2, -26);
-      ctx.lineTo(2, -26);
-      ctx.closePath();
-      ctx.fillStyle = featherColors[Math.abs(fi) % featherColors.length];
-      ctx.globalAlpha = 0.85;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      // Eye on feather
-      circle(ctx, 0, -22, 3, '#1A5A8A');
-      circle(ctx, 0, -22, 1.5, '#FFD700');
+      ctx.bezierCurveTo(-7, -fLenS * 0.4, -9, -fLenS * 0.8, 0, -fLenS);
+      ctx.bezierCurveTo( 9, -fLenS * 0.8,  7, -fLenS * 0.4, 0, 0);
+      ctx.fillStyle = _PCK_TAIL; ctx.fill();
+      ctx.strokeStyle = _PCK_TAILD; ctx.lineWidth = 1; ctx.stroke();
+      // Eye-spot: teal ellipse, gold ring, blue centre
+      ctx.beginPath(); ctx.ellipse(0, -fLenS * 0.82, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _PCK_EYE; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -fLenS * 0.82, 7, 5, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, -fLenS * 0.82, 3.5, 2.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _PCK_BODY; ctx.fill();
       ctx.restore();
     }
-    ctx.restore();
+  }
 
-    // ── Kartikeya body ────────────────────────────────────────────────
-    // Dhoti (red / maroon)
+  function _pckHead(ctx, t) {
+    // Neck
     ctx.beginPath();
-    ctx.ellipse(0, -24, 14, 24, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#A01020';
-    ctx.fill();
+    ctx.moveTo(-4, -32); ctx.bezierCurveTo(-5, -48, 4, -50, 5, -36);
+    ctx.fillStyle = _PCK_NECK; ctx.fill(); _ktLine(ctx, 1.4);
+    // Head
+    circle(ctx, 1, -52, 8, _PCK_NECK);
+    ctx.beginPath(); ctx.arc(1, -52, 8, 0, Math.PI * 2);
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.4; ctx.stroke();
+    // Highlight
+    circle(ctx, -1, -55, 3.5, _PCK_HI);
+    // Beak
+    ctx.beginPath();
+    ctx.moveTo(5, -51); ctx.bezierCurveTo(14, -50, 14, -47, 5, -47);
+    ctx.fillStyle = _PCK_BEAK; ctx.fill();
+    // Eye
+    circle(ctx, 3, -53, 3, '#FFFAE0');
+    circle(ctx, 3, -53, 1.8, '#1A0A00');
+    circle(ctx, 3.6, -53.6, 0.7, '#FFFFFF');
+    // 3-feather crest
+    for (var ci = -1; ci <= 1; ci++) {
+      ctx.strokeStyle = _PCK_TAIL; ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(ci * 4, -57);
+      ctx.bezierCurveTo(ci * 3 - 1, -66, ci * 2, -70, ci * 2, -72);
+      ctx.stroke();
+      circle(ctx, ci * 2, -72, 3, _PCK_BODY);
+      circle(ctx, ci * 2, -72, 1.5, _PCK_HI);
+    }
+  }
 
-    // Torso
-    ellipse(ctx, 0, -50, 12, 14, C.skinLight);
+  function _pckBody(ctx) {
+    // Main body oval
+    ctx.beginPath(); ctx.ellipse(0, -20, 18, 24, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _PCK_BODY; ctx.fill(); _ktLine(ctx, 1.8);
+    // Highlight (top-left)
+    ctx.beginPath(); ctx.ellipse(-5, -28, 8, 10, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = _PCK_HI; ctx.fill();
+    // Shade (bottom-right)
+    ctx.beginPath(); ctx.ellipse(5, -10, 8, 8, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10,30,80,0.35)'; ctx.fill();
+    // Wing (right side — visible on side view)
+    ctx.beginPath();
+    ctx.moveTo(10, -32); ctx.bezierCurveTo(28, -24, 30, -8, 18, 0);
+    ctx.bezierCurveTo(14, -4, 10, -14, 10, -32); ctx.closePath();
+    ctx.fillStyle = _PCK_WING; ctx.fill(); _ktLine(ctx, 1.4);
+    ctx.beginPath();
+    ctx.moveTo(14, -28); ctx.bezierCurveTo(26, -22, 27, -10, 18, -2);
+    ctx.strokeStyle = _PCK_WINGE; ctx.lineWidth = 2.5; ctx.stroke();
+  }
 
-    // Arms (warrior, slightly muscular)
+  function _pckLegs(ctx, t, pose) {
+    var cycle = (pose === 'run') ? Math.sin(t * 9) * 0.35 : 0;
+    // Right leg
+    ctx.save(); ctx.translate(6, 0); ctx.rotate(cycle);
+    ctx.strokeStyle = '#C07840'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(2, 14); ctx.lineTo(8, 22); ctx.stroke();
+    ctx.restore();
+    // Left leg (counter-phase)
+    ctx.save(); ctx.translate(-6, 0); ctx.rotate(-cycle);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-2, 14); ctx.lineTo(-8, 22); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPeacock(ctx, x, y, t, opts) {
+    opts = opts || {};
+    var sc   = opts.scale || 1;
+    var pose = opts.pose  || 'stand';
+    var dirRaw = opts.dir !== undefined ? opts.dir : 'right';
+    var isBack  = (dirRaw === 'up');
+    var isSideL = (dirRaw === 'left');
+    var flipX   = isSideL ? -1 : 1;
+
+    ovalShadow(ctx, x, y, 20 * sc, 5 * sc);
     ctx.save();
-    ctx.translate(13, -52);
-    ctx.rotate(0.25);
-    roundRect(ctx, 0, -4, 9, 18, 4, C.skinLight);
+    ctx.translate(x, y);
+    ctx.scale(flipX * sc, sc);
+
+    if (isBack) {
+      // ── BACK VIEW: body silhouette + full spread tail fan ─────────────
+      _pckBody(ctx);
+      ctx.save(); ctx.translate(0, -22); _pckTailFan(ctx, t, false); ctx.restore();
+      _pckLegs(ctx, t, pose);
+    } else {
+      // ── SIDE / FRONT VIEW ─────────────────────────────────────────────
+      // Tail fan behind body (streaming if run)
+      ctx.save();
+      ctx.translate(-18, -20);
+      _pckTailFan(ctx, t, pose === 'run');
+      ctx.restore();
+      _pckBody(ctx);
+      _pckHead(ctx, t);
+      _pckLegs(ctx, t, pose);
+    }
+
     ctx.restore();
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  KARTIKEYA ON PEACOCK                                           ║
+  // ║  drawKartikeyaOnPeacock(ctx, x, y, t, opts)                    ║
+  // ║  opts = { scale, dir, pose }                                    ║
+  // ║  Reads clearly down to scale 0.3 (race-bar icon).              ║
+  // ╚══════════════════════════════════════════════════════════════════╝
+  function drawKartikeyaOnPeacock(ctx, x, y, t, opts) {
+    opts = opts || {};
+    var sc   = opts.scale || 1;
+    var pose = opts.pose  || 'stand';
+    var dirRaw = opts.dir !== undefined ? opts.dir : 'right';
+    var isBack  = (dirRaw === 'up');
+    var isSideL = (dirRaw === 'left');
+    var flipX   = isSideL ? -1 : 1;
+
+    // Ground shadow (combined for both)
+    ovalShadow(ctx, x, y, 28 * sc, 7 * sc);
+
     ctx.save();
-    ctx.translate(-13, -52);
-    ctx.rotate(-0.25);
-    roundRect(ctx, -9, -4, 9, 18, 4, C.skinLight);
-    ctx.restore();
+    ctx.translate(x, y);
+    ctx.scale(flipX * sc, sc);
 
-    // Neck + head
-    ellipse(ctx, 0, -64, 7, 5, C.skinLight);
-    ellipse(ctx, 0, -76, 13, 15, C.skinLight);
-    outline(ctx, 1);
+    var bob = (pose === 'stand') ? Math.sin(t * 2.2) * 1.5 : 0;
+    ctx.translate(0, bob);
 
-    // Hair (dark, styled)
-    ctx.beginPath();
-    ctx.ellipse(0, -86, 12, 8, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#1A0A00';
-    ctx.fill();
+    // BACK VIEW: peacock body + fan, then Kartikeya seated on back
+    if (isBack) {
+      // Peacock lower body + legs (drawn below rider)
+      _pckLegs(ctx, t, pose);
+      ctx.beginPath(); ctx.ellipse(0, -16, 18, 14, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _PCK_BODY; ctx.fill(); _ktLine(ctx, 1.8);
+      // Full spread tail fan — key visual for back view
+      ctx.save(); ctx.translate(0, -22); _pckTailFan(ctx, t, pose === 'run'); ctx.restore();
 
-    // Crown / peacock feather in hair
-    ctx.beginPath();
-    ctx.moveTo(0, -90);
-    ctx.bezierCurveTo(-4, -100, 4, -102, 0, -106);
-    ctx.strokeStyle = '#2A9A4A';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    circle(ctx, 0, -107, 3.5, '#1A5A8A');
-    circle(ctx, 0, -107, 1.5, C.gold);
+      // Kartikeya seated — torso + crown visible above peacock
+      // Seat position at -24
+      ctx.save(); ctx.translate(0, -30);
+      // Dhoti dome (seated)
+      ctx.beginPath(); ctx.ellipse(0, -4, 14, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_DHOTI; ctx.fill(); _ktLine(ctx, 1.4);
+      ctx.beginPath(); ctx.moveTo(-12, -2); ctx.bezierCurveTo(-6, 4, 6, 4, 12, -2);
+      ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 2.5; ctx.stroke();
+      // Back torso
+      ctx.beginPath(); ctx.ellipse(0, -18, 12, 12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.5);
+      ctx.beginPath(); ctx.ellipse(0, -12, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SHADE; ctx.fill();
+      // Sash tails
+      if (pose === 'run') {
+        ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(-8, -8); ctx.bezierCurveTo(-14, 2, -16, 14, -12, 22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(8, -8);  ctx.bezierCurveTo(14, 2, 16, 14, 12, 22);  ctx.stroke();
+      }
+      // Back arms
+      var bkR = (pose === 'run') ? -0.3 : 0.2;
+      ctx.save(); ctx.translate(12, -22); ctx.rotate(bkR);
+      ctx.beginPath(); ctx.ellipse(0.5, 6, 4, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+      ctx.beginPath(); ctx.ellipse(0.5, 2, 4.5, 3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _ktGold(ctx, 0.5, 2, 4.5); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(-12, -22); ctx.rotate(-bkR);
+      ctx.beginPath(); ctx.ellipse(-0.5, 6, 4, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.2);
+      ctx.beginPath(); ctx.ellipse(-0.5, 2, 4.5, 3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _ktGold(ctx, -0.5, 2, 4.5); ctx.fill(); ctx.restore();
+      // Back head + crown (simplified for small scale)
+      _ktHalo(ctx, t);
+      ctx.beginPath(); ctx.ellipse(0, -32, 12, 13, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_HAIR; ctx.fill(); _ktLine(ctx, 1.8);
+      ctx.beginPath(); ctx.ellipse(0, -45, 11, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _ktGold(ctx, 0, -45, 11); ctx.fill(); _ktLine(ctx, 1.2);
+      roundRect(ctx, -8, -54, 16, 9, 2, null);
+      ctx.fillStyle = _ktGold(ctx, 0, -50, 8); ctx.fill(); _ktLine(ctx, 1.2);
+      ctx.beginPath(); ctx.moveTo(-4, -54); ctx.lineTo(0, -63); ctx.lineTo(4, -54); ctx.closePath();
+      ctx.fillStyle = _ktGold(ctx, 0, -58, 6); ctx.fill(); _ktLine(ctx, 1.2);
+      ctx.restore();
 
-    // Eyes
-    circle(ctx, -5, -76, 3.5, C.white);
-    circle(ctx,  5, -76, 3.5, C.white);
-    circle(ctx, -5, -76, 2,   '#2A1A0A');
-    circle(ctx,  5, -76, 2,   '#2A1A0A');
+    } else {
+      // SIDE VIEW (and front fallback)
+      // Tail fan streaming back or spread
+      ctx.save();
+      ctx.translate(-20, -18);
+      _pckTailFan(ctx, t, pose === 'run');
+      ctx.restore();
+      // Peacock body
+      _pckBody(ctx);
+      _pckLegs(ctx, t, pose);
+      _pckHead(ctx, t);
 
-    // Smile
-    ctx.beginPath();
-    ctx.arc(0, -72, 5, 0.1, Math.PI - 0.1);
-    ctx.strokeStyle = '#8B4513';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+      // Kartikeya seated on peacock's back (shifted up)
+      ctx.save(); ctx.translate(0, -38);
+      // Dhoti (seated dome)
+      ctx.beginPath(); ctx.ellipse(0, -2, 14, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_DHOTI; ctx.fill(); _ktLine(ctx, 1.4);
+      ctx.beginPath(); ctx.moveTo(-12, 0); ctx.bezierCurveTo(-6, 6, 6, 6, 12, 0);
+      ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 2.5; ctx.stroke();
+      // Sash
+      ctx.strokeStyle = _KT_GOLD; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(6, -2); ctx.bezierCurveTo(12, 8, 14, 16, 10, 24); ctx.stroke();
+      // Torso
+      ctx.beginPath(); ctx.ellipse(0, -16, 11, 12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SKIN; ctx.fill(); _ktLine(ctx, 1.5);
+      ctx.beginPath(); ctx.ellipse(2, -12, 5, 7, 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_SHADE; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-3, -20, 4, 5, -0.2, 0, Math.PI * 2);
+      ctx.fillStyle = _KT_HI; ctx.fill();
+      // Armband
+      ctx.beginPath(); ctx.ellipse(11, -18, 4, 3, 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = _ktGold(ctx, 11, -18, 4); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-11, -18, 4, 3, -0.3, 0, Math.PI * 2);
+      ctx.fillStyle = _ktGold(ctx, -11, -18, 4); ctx.fill();
+      // Garland
+      ctx.strokeStyle = '#3A5A10'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(-9,-18); ctx.quadraticCurveTo(0,-12, 9,-18); ctx.stroke();
+      circle(ctx, 0, -13, 2.5, G.COL.marigold);
+      // Head + halo + crown (compact)
+      _ktHalo(ctx, t);
+      _ktCrown(ctx);
+      _ktHead(ctx, t, pose);
+      ctx.restore();
+
+      // Vel held lightly (angled, not pointing at anyone)
+      ctx.save(); ctx.translate(14, -10); ctx.rotate(-0.15);
+      ctx.strokeStyle = _KT_VEL; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -88); ctx.stroke();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -88); ctx.bezierCurveTo(-6, -96, -6, -104, 0, -108);
+      ctx.bezierCurveTo(6, -104, 6, -96, 0, -88); ctx.closePath();
+      ctx.fillStyle = _ktGold(ctx, 0, -98, 8); ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+    }
 
     ctx.restore();
   }
@@ -2786,8 +3437,10 @@ G.art = (function () {
     drawMushak:           drawMushak,
     drawParvati:    drawParvati,
     drawShiva:      drawShiva,
-    drawKartikeya:  drawKartikeya,
-    drawDevotee:    drawDevotee,
+    drawKartikeya:           drawKartikeya,
+    drawPeacock:             drawPeacock,
+    drawKartikeyaOnPeacock:  drawKartikeyaOnPeacock,
+    drawDevotee:             drawDevotee,
     // Props
     drawModak:      drawModak,
     drawModakPlate: drawModakPlate,

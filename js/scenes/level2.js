@@ -731,17 +731,24 @@ function _l2darkOutline(ctx) {
   ctx.stroke();
 }
 
-// ── Kartikeya small sprite in far lane, always slightly ahead ────────────
+// ── Kartikeya-on-Peacock racer: back-view, far lane, dust puff ───────────
 function _l2drawKartikeyaRunner(ctx, t) {
-  // Kartikeya is scripted ahead; show him in the far lane on screen
-  // Approximate: project at z=0.45 in lane 0 or 2 (alternates slowly)
-  var kartLane = Math.floor(_l2t / 8) % 2 === 0 ? 0 : 2;
-  var kartProj = _l2project(0.45, kartLane);
-  var kartSc   = kartProj.scale * 0.75;
+  // Project at z=0.42, alternating lanes 0 and 2 slowly
+  var kartLane = Math.floor(_l2t / 9) % 2 === 0 ? 0 : 2;
+  var kartProj = _l2project(0.42, kartLane);
+  var kartSc   = kartProj.scale * 0.8;
+
+  // Small dust puff behind
+  var dustX = kartProj.x + (kartLane === 0 ? 14 : -14) * kartSc;
+  var dustA  = 0.18 + Math.sin(t * 7) * 0.06;
+  ctx.beginPath(); ctx.arc(dustX, kartProj.y + 4 * kartSc, 7 * kartSc, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(200,170,120,' + dustA + ')'; ctx.fill();
+
+  // Kartikeya on Peacock — back view, run pose, tail streaming
   ctx.save();
   ctx.translate(kartProj.x, kartProj.y);
   ctx.scale(kartSc, kartSc);
-  G.art.drawKartikeya(ctx, 0, 0, t, { scale: 1.0, dir: 1 });
+  G.art.drawKartikeyaOnPeacock(ctx, 0, 0, t, { scale: 1.0, dir: 'up', pose: 'run' });
   ctx.restore();
 }
 
@@ -767,18 +774,16 @@ function _l2drawRunHUD(ctx) {
   ctx.fillStyle = '#7A5828';
   ctx.fillRect(barX + 4, barY + 11, barW - 8, 4);
 
-  // ── Kartikeya icon: green circle, 'K', bigger (r=13) ─────────────────
+  // ── Kartikeya icon: tiny drawKartikeyaOnPeacock (side, stand) ────────
   var kartX = barX + 4 + (barW - 26) * Math.min(0.98, _l2kartProg);
-  G.art.circle(ctx, kartX, barY + barH / 2, 13, G.COL.green);
-  // Dark outline on icon
-  ctx.beginPath(); ctx.arc(kartX, barY + barH / 2, 13, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2; ctx.stroke();
-  // Bold 'K' with outline
-  ctx.font = 'bold 13px -apple-system,sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillText('K', kartX + 1, barY + barH / 2 + 1);
-  ctx.fillStyle = G.COL.white; ctx.fillText('K', kartX, barY + barH / 2);
+  var iconY  = barY + barH / 2 + 10;   // feet align to icon baseline
+  // Clip to a small circle so it never bleeds outside the bar
+  ctx.save();
+  ctx.beginPath(); ctx.arc(kartX, barY + barH / 2, 14, 0, Math.PI * 2);
+  ctx.strokeStyle = G.COL.green; ctx.lineWidth = 2; ctx.stroke();
+  ctx.clip();
+  G.art.drawKartikeyaOnPeacock(ctx, kartX, iconY, _l2t, { scale: 0.24, dir: 'right', pose: 'run' });
+  ctx.restore();
 
   // ── Ganesha icon: saffron circle, 'G', bigger ────────────────────────
   var ganX = barX + 4 + (barW - 26) * Math.min(0.98, _l2progress);

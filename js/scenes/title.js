@@ -226,8 +226,8 @@
   var states  = ['idle', 'walk', 'celebrate'];
   var stateIdx= 0;
 
-  var PAGE    = 0;           // gallery page (0=chars, 1=props, 2=Parvati, 3=Shiva, 4=Mushak)
-  var PAGES   = 5;
+  var PAGE    = 0;           // gallery page (0=chars, 1=props, 2=Parvati, 3=Shiva, 4=Mushak, 5=Kartikeya)
+  var PAGES   = 6;
 
   // Button hit-areas (in logical px)
   var btnPrev = { x: 60,       y: G.H - 50, w: 100, h: 44 };
@@ -452,6 +452,41 @@
     });
   }
 
+  // ── Page 5: Lord Kartikeya & Peacock — all poses and directions ──────
+  function drawKartikeyaPage(ctx) {
+    // Row 1: Kartikeya standalone — all poses, front view
+    var sc1 = 0.55;
+    G.art.centeredText(ctx, 'Lord Kartikeya — all poses (front)', G.W/2, 84, 16, G.COL.cream);
+    var row1 = [
+      { lbl: 'stand',     fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:sc1, pose:'stand',  dir:'down'}); } },
+      { lbl: 'run',       fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:sc1, pose:'run',    dir:'down'}); } },
+      { lbl: 'cheer',     fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:sc1, pose:'cheer',  dir:'down'}); } },
+      { lbl: 'bow',       fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:sc1, pose:'bow',    dir:'down'}); } },
+      { lbl: 'back ↑',    fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:sc1, pose:'stand',  dir:'up'}); } },
+      { lbl: 'side →',    fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:sc1, pose:'run',    dir:'right'}); } },
+    ];
+    var sp1 = G.W / (row1.length + 1);
+    row1.forEach(function(p, i) { cell(ctx, p.lbl, p.fn, sp1 * (i + 1), 260); });
+
+    // Row 2: Peacock + KartikeyaOnPeacock combinations
+    G.art.centeredText(ctx, 'Peacock & Kartikeya on Peacock', G.W/2, 390, 16, G.COL.cream);
+    var row2 = [
+      { lbl: 'peacock →',      fn: function(c,x,y){ G.art.drawPeacock(c,x,y,t,{scale:1.1, dir:'right', pose:'stand'}); } },
+      { lbl: 'peacock run →',  fn: function(c,x,y){ G.art.drawPeacock(c,x,y,t,{scale:1.1, dir:'right', pose:'run'}); } },
+      { lbl: 'peacock back ↑', fn: function(c,x,y){ G.art.drawPeacock(c,x,y,t,{scale:1.1, dir:'up',    pose:'stand'}); } },
+      { lbl: 'KoP stand →',   fn: function(c,x,y){ G.art.drawKartikeyaOnPeacock(c,x,y,t,{scale:0.7, dir:'right', pose:'stand'}); } },
+      { lbl: 'KoP run →',     fn: function(c,x,y){ G.art.drawKartikeyaOnPeacock(c,x,y,t,{scale:0.7, dir:'right', pose:'run'}); } },
+      { lbl: 'KoP back ↑',    fn: function(c,x,y){ G.art.drawKartikeyaOnPeacock(c,x,y,t,{scale:0.7, dir:'up',    pose:'run'}); } },
+    ];
+    var sp2 = G.W / (row2.length + 1);
+    row2.forEach(function(p, i) { cell(ctx, p.lbl, p.fn, sp2 * (i + 1), 560); });
+
+    // Scale checks (small)
+    G.art.centeredText(ctx, 'Icon scales (0.3 and 0.4)',  G.W - 200, 390, 13, 'rgba(255,255,255,0.5)');
+    G.art.drawKartikeyaOnPeacock(ctx, G.W - 280, 550, t, { scale: 0.3, dir: 'right', pose: 'run' });
+    G.art.drawKartikeyaOnPeacock(ctx, G.W - 180, 550, t, { scale: 0.4, dir: 'up',    pose: 'run' });
+  }
+
   // ── Scene ─────────────────────────────────────────────────────────────
   G.scenes['artGallery'] = {
     init: function () {
@@ -474,7 +509,7 @@
       G.art.clearBg(ctx, '#2E1A00');
 
       // Title bar
-      var pgLabels = ['Characters', 'Props', 'Maa Parvati', 'Lord Shiva', 'Mushak — all poses'];
+      var pgLabels = ['Characters', 'Props', 'Maa Parvati', 'Lord Shiva', 'Mushak — all poses', 'Kartikeya & Peacock'];
       G.art.centeredText(ctx, 'ART GALLERY — ' + pgLabels[PAGE], G.W/2, 36, 26, G.COL.marigold);
       G.art.centeredText(ctx, 'Page ' + (PAGE + 1) + ' / ' + PAGES, G.W/2, 64, 16, G.COL.gold);
 
@@ -482,7 +517,8 @@
       else if (PAGE === 1) drawPropPage(ctx);
       else if (PAGE === 2) drawParvatiPage(ctx);
       else if (PAGE === 3) drawShivaPage(ctx);
-      else                 drawMushakPage(ctx);
+      else if (PAGE === 4) drawMushakPage(ctx);
+      else                 drawKartikeyaPage(ctx);
 
       // ── Bottom buttons ─────────────────────────────────────────────
       function btn(b, label) {
