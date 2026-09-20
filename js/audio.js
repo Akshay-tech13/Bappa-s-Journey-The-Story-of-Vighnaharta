@@ -139,6 +139,31 @@ G.audio = (function () {
     });
   }
 
+  // ── Dhol loop ─────────────────────────────────────────────────────────────
+  // A simple two-hit dhol pattern: bass beat + light tap, repeating at ~125 BPM.
+  // Scenes call startDhol() in init() and stopDhol() in destroy().
+  var dholTimer    = null;
+  var dholRunning  = false;
+
+  function startDhol() {
+    if (dholRunning) return;
+    dholRunning = true;
+    function beat() {
+      if (muted || !ctx) return;
+      // Bass hit (low thud)
+      playTone(80, 'sine', 0.22, 0.18);
+      // Echo tap after 200 ms
+      setTimeout(function () { playTone(120, 'sine', 0.10, 0.12); }, 200);
+    }
+    beat();  // first beat immediately
+    dholTimer = setInterval(beat, 480);  // ~125 BPM
+  }
+
+  function stopDhol() {
+    if (dholTimer) { clearInterval(dholTimer); dholTimer = null; }
+    dholRunning = false;
+  }
+
   // ── Mute toggle ───────────────────────────────────────────────────────
   function toggleMute() {
     muted = !muted;
@@ -155,6 +180,8 @@ G.audio = (function () {
     thud:           thud,
     blessingShimmer:blessingShimmer,
     levelComplete:  levelComplete,
+    startDhol:      startDhol,
+    stopDhol:       stopDhol,
     toggleMute:     toggleMute,
     isMuted:        isMuted,
   };
