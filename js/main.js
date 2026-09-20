@@ -155,16 +155,17 @@
   }
 
   // ── Boot ──────────────────────────────────────────────────────────────
-  // Check URL for ?debug=art to open the art gallery directly.
+  // ?debug=art  → art gallery
+  // ?debug=test → M0 test circle
+  // (default)   → real title screen
   window.addEventListener('load', function () {
     lastTime = performance.now();
     requestAnimationFrame(loop);
     var params = new URLSearchParams(window.location.search);
-    if (params.get('debug') === 'art') {
-      G.sceneManager.goto('artGallery');
-    } else {
-      G.sceneManager.goto('test');
-    }
+    var dbg    = params.get('debug');
+    if      (dbg === 'art')  { G.sceneManager.goto('artGallery'); }
+    else if (dbg === 'test') { G.sceneManager.goto('test'); }
+    else                     { G.sceneManager.goto('title'); }
   });
 
 })();

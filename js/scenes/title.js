@@ -1,7 +1,7 @@
-// js/scenes/title.js — Title screen (M2) + M0 test scene + M1 art gallery
-// M0: registers a 'test' scene with a moveable saffron circle.
-// M1: registers an 'artGallery' debug scene (opened via ?debug=art).
-// M2: the real 'title' scene is added here.
+// js/scenes/title.js — Title screen + M0 test scene + M1 art gallery
+// M0: 'test' scene (moveable circle).
+// M1: 'artGallery' debug scene (?debug=art).
+// M2: real 'title' scene — Ganesha idle, drifting petals, Play button.
 
 'use strict';
 
@@ -38,16 +38,135 @@
   };
 })();
 
-// ── Title scene stub (filled in M2) ──────────────────────────────────────
-G.scenes['title'] = {
-  init:   function () {},
-  update: function () {},
-  draw:   function (ctx) {
-    G.art.clearBg(ctx, G.COL.darkBg);
-    G.art.centeredText(ctx, G.GAME_TITLE,         G.W/2, G.H/2 - 30, 48, G.COL.marigold);
-    G.art.centeredText(ctx, 'Title scene — M2',   G.W/2, G.H/2 + 30, 22, G.COL.cream);
-  },
-};
+// ── Title scene (M2) ──────────────────────────────────────────────────────
+(function () {
+
+  var t         = 0;
+  var playRect  = null;   // hit-rect for Play button (set during draw)
+  var muteRect  = null;   // hit-rect for mute button on title
+
+  // Drifting petal particles
+  var PETAL_COUNT = 18;
+  var petals = [];
+  function resetPetals() {
+    petals = [];
+    for (var i = 0; i < PETAL_COUNT; i++) {
+      petals.push({
+        x:    Math.random() * G.W,
+        y:    Math.random() * G.H,
+        vy:   20 + Math.random() * 30,       // downward drift px/s
+        vx:   (Math.random() - 0.5) * 15,    // gentle sideways
+        phase: Math.random() * Math.PI * 2,  // individual spin offset
+      });
+    }
+  }
+
+  // Input handler
+  var clickHandler = null;
+  function attachInput() {
+    clickHandler = function (e) {
+      G.audio.unlock();
+      var p = G.ui.toLogical(e);
+      if (playRect && G.ui.isButtonHit(p.x, p.y, playRect)) {
+        G.audio.chime();
+        G.sceneManager.goto('story');
+      }
+      if (muteRect && G.ui.isButtonHit(p.x, p.y, muteRect)) {
+        G.audio.toggleMute();
+      }
+    };
+    G.canvas.addEventListener('click',      clickHandler);
+    G.canvas.addEventListener('touchstart', clickHandler, { passive: false });
+  }
+  function detachInput() {
+    if (clickHandler) {
+      G.canvas.removeEventListener('click',      clickHandler);
+      G.canvas.removeEventListener('touchstart', clickHandler);
+      clickHandler = null;
+    }
+  }
+
+  G.scenes['title'] = {
+    init: function () {
+      t = 0;
+      resetPetals();
+      attachInput();
+    },
+
+    update: function (dt) {
+      t += dt;
+      // Space / action key also starts the game
+      if (G.input.state.actionPressed) {
+        G.audio.chime();
+        G.sceneManager.goto('story');
+      }
+      // Update petals
+      petals.forEach(function (p) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        if (p.y > G.H + 20) { p.y = -20; p.x = Math.random() * G.W; }
+        if (p.x < -20)      { p.x = G.W + 20; }
+        if (p.x > G.W + 20) { p.x = -20; }
+      });
+    },
+
+    draw: function (ctx) {
+      // ── Background gradient (warm dawn sky) ────────────────────────
+      var grad = ctx.createLinearGradient(0, 0, 0, G.H);
+      grad.addColorStop(0,   '#2C1A0E');
+      grad.addColorStop(0.5, '#4A2810');
+      grad.addColorStop(1,   '#1A1A2E');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, G.W, G.H);
+
+      // ── Drifting petals ────────────────────────────────────────────
+      petals.forEach(function (p) {
+        G.art.drawPetal(ctx, p.x, p.y, t + p.phase);
+      });
+
+      // ── Ganesha idle, left of centre ───────────────────────────────
+      G.art.drawGanesha(ctx, G.W / 2 - 160, G.H / 2 + 80, t, { state: 'idle', scale: 1.6 });
+
+      // ── Title text ─────────────────────────────────────────────────
+      // Large title
+      ctx.save();
+      ctx.shadowColor = G.COL.gold;
+      ctx.shadowBlur  = 18;
+      G.art.centeredText(ctx, G.GAME_TITLE,    G.W / 2 + 80, G.H / 2 - 80, 54, G.COL.marigold);
+      ctx.restore();
+      G.art.centeredText(ctx, G.GAME_SUBTITLE, G.W / 2 + 80, G.H / 2 - 20, 22, G.COL.gold);
+
+      // How to play hint
+      G.art.centeredText(ctx,
+        'Collect modaks  •  Light diyas  •  Earn blessings',
+        G.W / 2 + 80, G.H / 2 + 30, 18, G.COL.cream);
+
+      // ── Play button ────────────────────────────────────────────────
+      // Pulse scale for the play button
+      var pulse = 1 + Math.sin(t * 2.5) * 0.03;
+      ctx.save();
+      ctx.translate(G.W / 2 + 80, G.H / 2 + 110);
+      ctx.scale(pulse, pulse);
+      ctx.translate(-(G.W / 2 + 80), -(G.H / 2 + 110));
+      playRect = G.ui.drawButton(ctx, '▶  Play', G.W / 2 + 80, G.H / 2 + 110, 200, 60,
+        { color: G.COL.saffron, fontSize: 26, radius: 16 });
+      ctx.restore();
+
+      // ── Mute button (top-right, same position as the HTML button) ──
+      muteRect = G.ui.drawButton(ctx, G.audio.isMuted() ? '🔇' : '🔊',
+        G.W - 36, 36, 54, 54,
+        { color: 'rgba(0,0,0,0.45)', fontSize: 20, radius: 27 });
+
+      // ── Controls hint at bottom ────────────────────────────────────
+      G.art.centeredText(ctx,
+        'WASD / Arrow keys  •  Space = Blessing  •  M = mute',
+        G.W / 2, G.H - 28, 16, 'rgba(255,248,231,0.55)');
+    },
+
+    destroy: function () { detachInput(); },
+  };
+
+})();
 
 // ╔══════════════════════════════════════════════════════════════════════╗
 // ║  M1 — ART GALLERY DEBUG SCENE                                       ║
