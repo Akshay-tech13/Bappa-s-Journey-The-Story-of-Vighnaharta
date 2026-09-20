@@ -18,22 +18,22 @@ var _STORY_AUTO = 4;
 // ── Slide data: bg colour, two text lines ─────────────────────────────────
 var _STORY_SLIDES = [
   {
-    bg:    '#2A1A08',
+    bg:    '#3D2B1F',   // warm dark brown — lighter so characters show
     line1: 'On Mount Kailash, Maa Parvati shaped a little boy',
     line2: 'from sandalwood paste and gave him life.',
   },
   {
-    bg:    '#0E1A28',
+    bg:    '#1C2E40',   // dark blue-grey
     line1: 'She asked him to guard her door.',
     line2: 'He stood there, brave and faithful.',
   },
   {
-    bg:    '#1A0A2E',
+    bg:    '#2A1040',   // dark purple
     line1: 'Lord Shiva came home, moved by the boy\'s courage.',
     line2: 'He blessed him — and a golden light filled the world.',
   },
   {
-    bg:    '#1A0A00',
+    bg:    '#2C1A0E',   // warm brown
     line1: 'Named Ganapati — first among all,',
     line2: 'little Ganesha is now hungry for modaks!',
   },
@@ -100,7 +100,7 @@ G.scenes['story'] = {
     var slide = _STORY_SLIDES[_storySlide];
     var t = _storyTotalT;
     var cx = G.W / 2;
-    var cy = G.H / 2 - 80;   // illustration centre
+    var cy = 260;   // fixed illustration centre — characters draw above text panel
 
     // ── Background ────────────────────────────────────────────────────
     ctx.fillStyle = slide.bg;
@@ -108,18 +108,18 @@ G.scenes['story'] = {
 
     // ── Slide illustrations ───────────────────────────────────────────
     if (_storySlide === 0) {
-      // Mountain silhouette behind Parvati
+      // Mountain silhouette — brighter purple so visible on dark bg
       ctx.save();
-      ctx.translate(cx, cy + 80);
+      ctx.translate(cx, cy + 60);
       ctx.beginPath();
-      ctx.moveTo(-220,0); ctx.lineTo(-60,-200); ctx.lineTo(60,-200); ctx.lineTo(220,0);
-      ctx.closePath(); ctx.fillStyle = '#3A3060'; ctx.fill();
+      ctx.moveTo(-240,0); ctx.lineTo(-70,-180); ctx.lineTo(70,-180); ctx.lineTo(240,0);
+      ctx.closePath(); ctx.fillStyle = '#6050A0'; ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(-30,-200); ctx.lineTo(0,-240); ctx.lineTo(30,-200);
-      ctx.fillStyle = '#D0D8FF'; ctx.fill();
+      ctx.moveTo(-35,-180); ctx.lineTo(0,-220); ctx.lineTo(35,-180);
+      ctx.fillStyle = '#E0E8FF'; ctx.fill();
       ctx.restore();
-      // Parvati shaping the boy
-      G.art.drawParvati(ctx, cx - 80, cy + 160, t, { scale: 1.1 });
+      // Parvati — moved right so mountain and character don't overlap
+      G.art.drawParvati(ctx, cx + 80, cy + 200, t, { scale: 1.2 });
       // Glowing sandalwood form
       var grd0 = ctx.createRadialGradient(cx+40, cy+70, 4, cx+40, cy+70, 32);
       grd0.addColorStop(0, 'rgba(255,220,100,0.9)');
@@ -144,10 +144,10 @@ G.scenes['story'] = {
       G.art.circle(ctx, 24,-70, 5, G.COL.gold);
       ctx.restore();
       // Ganesha guarding
-      G.art.drawGanesha(ctx, cx, cy+180, t, { state:'idle', scale:1.2 });
+      G.art.drawGanesha(ctx, cx, cy+200, t, { state:'idle', scale:1.2 });
       // Diyas either side
-      G.art.drawDiya(ctx, cx-140, cy+120, true, t);
-      G.art.drawDiya(ctx, cx+140, cy+120, true, t);
+      G.art.drawDiya(ctx, cx-160, cy+150, true, t);
+      G.art.drawDiya(ctx, cx+160, cy+150, true, t);
       // Stars
       var ss2=[0.12,0.28,0.45,0.61,0.73,0.88,0.05,0.34,0.56,0.79];
       for(var si2=0;si2<ss2.length;si2++){
@@ -157,7 +157,7 @@ G.scenes['story'] = {
 
     } else if (_storySlide === 2) {
       // Shiva + golden blessing glow
-      G.art.drawShiva(ctx, cx-100, cy+180, t, { scale:1.1 });
+      G.art.drawShiva(ctx, cx-100, cy+200, t, { scale:1.1 });
       var pulse = 0.55 + Math.sin(t*2.5)*0.2;
       var grd2 = ctx.createRadialGradient(cx+60,cy+80,8,cx+60,cy+80,90);
       grd2.addColorStop(0,'rgba(255,220,60,'+pulse+')');
@@ -183,16 +183,16 @@ G.scenes['story'] = {
 
     } else if (_storySlide === 3) {
       // Ganesha celebrating with floating modaks
-      G.art.drawGanesha(ctx, cx, cy+180, t, { state:'celebrate', scale:1.3 });
+      G.art.drawGanesha(ctx, cx, cy+200, t, { state:'celebrate', scale:1.3 });
       var mpos=[[-160,-20,0],[140,-40,1.2],[-100,-90,2.4],[100,-80,0.6],[0,-120,1.8]];
       for(var mi=0;mi<mpos.length;mi++){
-        G.art.drawModak(ctx,cx+mpos[mi][0],cy+180+mpos[mi][1]+Math.sin(t*2+mpos[mi][2])*8,1.2);
+        G.art.drawModak(ctx,cx+mpos[mi][0],cy+200+mpos[mi][1]+Math.sin(t*2+mpos[mi][2])*8,1.2);
       }
       for(var pi=0;pi<12;pi++){
-        G.art.drawPetal(ctx,cx+Math.cos(pi/12*Math.PI*2+t*0.3)*200,cy+80+Math.sin(pi/12*Math.PI*2+t*0.5)*60,t+pi);
+        G.art.drawPetal(ctx,cx+Math.cos(pi/12*Math.PI*2+t*0.3)*200,cy+100+Math.sin(pi/12*Math.PI*2+t*0.5)*60,t+pi);
       }
-      G.art.drawDevotee(ctx,cx-220,cy+180,t,{scale:0.8,phase:0,handsUp:true,color:G.COL.maroon});
-      G.art.drawDevotee(ctx,cx+220,cy+180,t,{scale:0.8,phase:1.4,handsUp:true,color:G.COL.green});
+      G.art.drawDevotee(ctx,cx-220,cy+200,t,{scale:0.8,phase:0,handsUp:true,color:G.COL.maroon});
+      G.art.drawDevotee(ctx,cx+220,cy+200,t,{scale:0.8,phase:1.4,handsUp:true,color:G.COL.green});
     }
 
     // ── Slide number (top-left, small) ────────────────────────────────
