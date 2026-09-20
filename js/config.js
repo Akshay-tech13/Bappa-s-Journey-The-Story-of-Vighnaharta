@@ -57,5 +57,8 @@ G.BLESSING_REACH = 90;    // px radius for Blessing action
 // ── Fade transition ────────────────────────────────────────────────────────
 G.FADE_MS = 300;          // milliseconds for black fade in/out
 
+// ── Scene registry — created here so scene files can register before main.js runs
+G.scenes = {};
+
 // ── HUD ────────────────────────────────────────────────────────────────────
 G.HUD_FONT_SIZE = 22;     // px — must stay ≥ 18 px per brief

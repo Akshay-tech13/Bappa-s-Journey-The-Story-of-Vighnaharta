@@ -34,8 +34,7 @@
 
   // ── Scene manager ─────────────────────────────────────────────────────
   // Each scene is a plain object: { init(), update(dt), draw(ctx) }
-  // Registered in G.scenes by each scene file.
-  G.scenes = {};
+  // G.scenes is created in config.js so scene files can register before this runs.
 
   var currentScene  = null;
   var currentName   = '';
