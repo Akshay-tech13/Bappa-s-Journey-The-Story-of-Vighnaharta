@@ -30,8 +30,20 @@ G.COL = {
   white:     '#FFFFFF',
   black:     '#000000',
   darkBg:    '#1A1A2E',   // letterbox / overlay background
-  skinLight: '#FDDBB4',   // character skin
+  skinLight: '#FDDBB4',   // character skin (legacy)
   brown:     '#6B3A2A',   // tree trunks, wooden objects
+
+  // ── New Ganesha palette (added for richer character art) ──────────────
+  peachSkin:  '#F2B98F',  // Ganesha base skin — warm golden-peach
+  peachShade: '#E3A87C',  // darker shade (chin, ear inner, trunk underside)
+  peachHi:    '#FDE0C0',  // lighter forehead highlight
+  blush:      '#F29A8C',  // rosy cheek circles
+  innerEar:   '#F4A5A0',  // inner ear soft pink
+  dhotiBdr:   '#8E1F2E',  // dhoti maroon border (same as maroon)
+  goldLight:  '#FFD86B',  // crown gradient highlight
+  goldDark:   '#E39A1E',  // crown gradient shadow
+  ivoryTusk:  '#F5F0D8',  // tusk ivory
+  outline:    '#5A3320',  // warm dark-brown outline (2 px, rounded)
 };
 
 // ── Scoring ────────────────────────────────────────────────────────────────

@@ -247,19 +247,30 @@
 
   // ── Page 0: Characters ───────────────────────────────────────────────
   function drawCharPage(ctx) {
-    // Row 1: Ganesha big (centred, scale 1.4)
-    var gx = G.W / 2, gy = 310;
-    G.art.centeredText(ctx, 'Bal Ganesha', gx, gy - 160, 18, G.COL.marigold);
-    G.art.drawGanesha(ctx, gx, gy, t, { state: state, scale: 1.4 });
+    // Row 1: Ganesha in all 4 poses at scale 1.0
+    var poses = [
+      { lbl: 'idle',      fn: function(c,x,y){ G.art.drawGanesha(c,x,y,t,{state:'idle',     scale:1.0}); } },
+      { lbl: 'walk →',    fn: function(c,x,y){ G.art.drawGanesha(c,x,y,t,{state:'walk',     scale:1.0,dir:1}); } },
+      { lbl: 'walk ←',    fn: function(c,x,y){ G.art.drawGanesha(c,x,y,t,{state:'walk',     scale:1.0,dir:-1}); } },
+      { lbl: 'celebrate', fn: function(c,x,y){ G.art.drawGanesha(c,x,y,t,{state:'celebrate',scale:1.0}); } },
+      { lbl: 'bless',     fn: function(c,x,y){ G.art.drawGanesha(c,x,y,t,{state:'bless',    scale:1.0}); } },
+      { lbl: 'on Mushak', fn: function(c,x,y){ G.art.drawGaneshaOnMushak(c,x,y,t,{scale:0.9}); } },
+    ];
+    var sp1 = G.W / (poses.length + 1);
+    var row1y = 290;
+    G.art.centeredText(ctx, 'Bal Ganesha — all poses', G.W/2, 60, 18, G.COL.marigold);
+    poses.forEach(function (p, i) {
+      cell(ctx, p.lbl, p.fn, sp1 * (i + 1), row1y);
+    });
 
     // Row 2: other characters smaller
-    var row2y = 600;
+    var row2y = 590;
     var chars = [
-      { lbl: 'Mushak',    fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:1.2}); } },
+      { lbl: 'Mushak',      fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:1.2}); } },
       { lbl: 'Maa Parvati', fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:1.0}); } },
-      { lbl: 'Lord Shiva', fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:1.0}); } },
-      { lbl: 'Kartikeya', fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:1.0}); } },
-      { lbl: 'Devotee',   fn: function(c,x,y){ G.art.drawDevotee(c,x,y,t,{scale:1.0,handsUp:true}); } },
+      { lbl: 'Lord Shiva',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:1.0}); } },
+      { lbl: 'Kartikeya',   fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:1.0}); } },
+      { lbl: 'Devotee',     fn: function(c,x,y){ G.art.drawDevotee(c,x,y,t,{scale:1.0,handsUp:true}); } },
     ];
     var spacing = G.W / (chars.length + 1);
     chars.forEach(function (ch, i) {

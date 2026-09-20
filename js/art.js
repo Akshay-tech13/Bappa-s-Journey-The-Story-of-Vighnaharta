@@ -96,213 +96,549 @@ G.art = (function () {
     ctx.fill();
   }
 
-  // ╔══════════════════════════════════════════════════════════════╗
-  // ║  GANESHA (Bal Ganesha — young, dignified, cute)             ║
-  // ║  x,y = centre-bottom (feet). Base height ~100 px.           ║
-  // ╚══════════════════════════════════════════════════════════════╝
-  //
-  // Layers drawn back→front:
-  //   1. Ground shadow
-  //   2. Feet / ankles
-  //   3. Dhoti (saffron)
-  //   4. Belly (round, cream-skin)
-  //   5. Body / chest
-  //   6. Right arm (modak side)
-  //   7. Left arm (blessing side)
-  //   8. Neck + head (elephant, big and round)
-  //   9. Large ears (left + right)
-  //  10. Trunk (curled)
-  //  11. Tusk (one small white tusk on right)
-  //  12. Eyes + forehead dot
-  //  13. Crown (small, jewelled)
-  //  14. Modak in right hand
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  BAL GANESHA — redrawn chibi children's-book style              ║
+  // ║  Signature: drawGanesha(ctx, x, y, t, opts)                     ║
+  // ║  opts = { state, dir, scale, squash }                           ║
+  // ║  All call-sites unchanged. Scale 1 ≈ 110 px tall.               ║
+  // ╚══════════════════════════════════════════════════════════════════╝
 
+  // ── Helper: warm dark-brown outlined stroke on current path ───────────
+  function _gnOutline(ctx, w) {
+    ctx.strokeStyle = C.outline;
+    ctx.lineWidth   = w || 1.8;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+  }
+
+  // ── Helper: gold radial gradient (crown, jewels) ──────────────────────
+  function _gnGoldGrad(ctx, cx, cy, r) {
+    var g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1,
+                                     cx, cy, r);
+    g.addColorStop(0, C.goldLight);
+    g.addColorStop(1, C.goldDark);
+    return g;
+  }
+
+  // ── Feet + legs (short chibi legs, gold anklets) ─────────────────────
+  function _gnFeet(ctx, legSwing, state) {
+    // Two small round feet with a stub leg
+    var lSwing = (state === 'walk') ? legSwing : 0;
+
+    // Left leg/foot
+    ctx.save();
+    ctx.translate(-9, 0);
+    ctx.rotate(-lSwing * 0.18);
+    roundRect(ctx, -5, -16, 10, 14, 5, C.peachSkin);
+    // Shade on leg
+    ctx.fillStyle = C.peachShade;
+    ctx.beginPath();
+    ctx.ellipse(2, -10, 3, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+    // Foot
+    ellipse(ctx, 0, 0, 8, 5, C.peachSkin);
+    // Anklet
+    ctx.beginPath();
+    ctx.arc(0, -1, 7, Math.PI * 0.9, Math.PI * 2.1);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+
+    // Right leg/foot
+    ctx.save();
+    ctx.translate(9, 0);
+    ctx.rotate(lSwing * 0.18);
+    roundRect(ctx, -5, -16, 10, 14, 5, C.peachSkin);
+    ctx.fillStyle = C.peachShade;
+    ctx.beginPath();
+    ctx.ellipse(-2, -10, 3, 5, -0.2, 0, Math.PI * 2); ctx.fill();
+    ellipse(ctx, 0, 0, 8, 5, C.peachSkin);
+    ctx.beginPath();
+    ctx.arc(0, -1, 7, Math.PI * 0.9, Math.PI * 2.1);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Dhoti body + belly ────────────────────────────────────────────────
+  function _gnDhotiBody(ctx, state, t) {
+    // Dhoti: saffron dome from waist to knees
+    ctx.beginPath();
+    ctx.moveTo(-22, -16);
+    ctx.bezierCurveTo(-26, -30, -22, -46, 0, -46);
+    ctx.bezierCurveTo(22, -46, 26, -30, 22, -16);
+    ctx.quadraticCurveTo(0, -10, -22, -16);
+    ctx.closePath();
+    ctx.fillStyle = '#F26B38';
+    ctx.fill();
+    _gnOutline(ctx, 1.5);
+
+    // Three curved pleat lines on dhoti
+    ctx.strokeStyle = 'rgba(140,50,10,0.35)';
+    ctx.lineWidth = 1.2;
+    for (var i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * 8, -18);
+      ctx.quadraticCurveTo(i * 6, -32, i * 4, -44);
+      ctx.stroke();
+    }
+
+    // Maroon + gold hem border at the bottom of dhoti
+    ctx.beginPath();
+    ctx.moveTo(-22, -16);
+    ctx.quadraticCurveTo(0, -8, 22, -16);
+    ctx.strokeStyle = C.dhotiBdr; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-22, -16);
+    ctx.quadraticCurveTo(0, -8, 22, -16);
+    ctx.strokeStyle = C.goldLight; ctx.lineWidth = 1.2; ctx.stroke();
+
+    // Gold waist sash
+    ctx.beginPath();
+    ctx.moveTo(-20, -46);
+    ctx.quadraticCurveTo(0, -50, 20, -46);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 3.5; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-20, -46);
+    ctx.quadraticCurveTo(0, -50, 20, -46);
+    ctx.strokeStyle = C.goldLight; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Round belly (chibi proportions — big round tummy)
+    var bellyBounce = (state === 'walk') ? Math.sin(t * 5) * 1.2 : 0;
+    ctx.beginPath();
+    ctx.ellipse(0, -58 + bellyBounce, 17, 16, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill();
+    _gnOutline(ctx, 1.5);
+    // Belly shade (lower edge)
+    ctx.beginPath();
+    ctx.ellipse(0, -52 + bellyBounce, 13, 6, 0, 0, Math.PI);
+    ctx.fillStyle = C.peachShade; ctx.fill();
+    // Navel
+    circle(ctx, 0, -56 + bellyBounce, 2.5, C.peachShade);
+    circle(ctx, 0, -56 + bellyBounce, 1, C.peachSkin);
+
+    // Chest / torso (connects belly to neck)
+    ctx.beginPath();
+    ctx.ellipse(0, -70, 13, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill();
+    // Chest highlight
+    ctx.beginPath();
+    ctx.ellipse(-3, -74, 6, 5, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachHi; ctx.fill();
+
+    // Sacred thread (janeu) — thin diagonal gold line
+    ctx.beginPath();
+    ctx.moveTo(-10, -62);
+    ctx.quadraticCurveTo(0, -68, 10, -78);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Gold necklace with small pendant
+    ctx.beginPath();
+    ctx.arc(0, -76, 9, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2; ctx.stroke();
+    circle(ctx, 0, -67, 3, C.goldLight);
+    circle(ctx, 0, -67, 1.5, C.goldDark);
+  }
+
+  // ── Arms (right = modak side, left = blessing/idle) ───────────────────
+  function _gnArms(ctx, state, t) {
+    var swing    = (state === 'walk')      ? Math.sin(t * 5) * 10 : 0;
+    var celebrate = (state === 'celebrate');
+
+    // Gold armband helper (drawn after the arm shape)
+    function armband(cy) {
+      ctx.beginPath();
+      ctx.arc(0, cy, 5, 0, Math.PI * 2);
+      ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+
+    // Right arm — holds modak (dir = 1 = right side)
+    ctx.save();
+    ctx.translate(17, -68 - (celebrate ? 10 : 0) + swing);
+    ctx.rotate(celebrate ? -0.9 : 0.35);
+    // Upper arm
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(5, 4, 6, 14, 4, 22);
+    ctx.bezierCurveTo(-2, 22, -6, 14, -4, 6);
+    ctx.closePath();
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 1.5);
+    // Shade on arm
+    ctx.fillStyle = C.peachShade;
+    ctx.beginPath(); ctx.ellipse(2, 12, 2.5, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+    armband(-2);
+    // Hand (round palm + 4 finger bumps)
+    ctx.fillStyle = C.peachSkin;
+    ctx.beginPath(); ctx.ellipse(0, 26, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
+    _gnOutline(ctx, 1.5);
+    // Bracelet
+    ctx.beginPath(); ctx.arc(0, 20, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = C.goldLight; ctx.lineWidth = 2; ctx.stroke();
+    // Finger bumps
+    ctx.fillStyle = C.peachSkin;
+    for (var fi = -3; fi <= 3; fi += 2) {
+      ctx.beginPath(); ctx.arc(fi, 30, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+    // Modak in hand
+    ctx.save();
+    ctx.translate(0, 36); ctx.scale(0.65, 0.65);
+    _drawModakShape(ctx, 0, 0);
+    ctx.restore();
+    ctx.restore();
+
+    // Left arm — blessing gesture (palm out) or at side
+    var bless = (state === 'bless' || state === 'celebrate');
+    ctx.save();
+    ctx.translate(-17, -68 - (celebrate ? 10 : 0) - swing);
+    ctx.rotate(bless ? -0.9 : -0.35);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-5, 4, -6, 14, -4, 22);
+    ctx.bezierCurveTo(2, 22, 6, 14, 4, 6);
+    ctx.closePath();
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 1.5);
+    ctx.fillStyle = C.peachShade;
+    ctx.beginPath(); ctx.ellipse(-2, 12, 2.5, 5, -0.2, 0, Math.PI * 2); ctx.fill();
+    armband(-2);
+    // Open palm (blessing) or relaxed fist
+    ctx.fillStyle = C.peachSkin;
+    ctx.beginPath(); ctx.ellipse(0, 26, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
+    _gnOutline(ctx, 1.5);
+    ctx.beginPath(); ctx.arc(0, 20, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = C.goldLight; ctx.lineWidth = 2; ctx.stroke();
+    if (bless) {
+      // Upward-pointing fingers for blessing
+      for (var bf = -3; bf <= 3; bf += 2) {
+        ctx.fillStyle = C.peachSkin;
+        ctx.beginPath(); ctx.arc(bf, 20, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      // Relaxed — finger bumps at bottom of palm
+      for (var rf = -3; rf <= 3; rf += 2) {
+        ctx.fillStyle = C.peachSkin;
+        ctx.beginPath(); ctx.arc(rf, 30, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    // Blessing glow ring when in bless state
+    if (state === 'bless') {
+      var bPulse = 0.5 + Math.sin(t * 4) * 0.3;
+      var bg = ctx.createRadialGradient(-17, -90, 4, -17, -90, 28);
+      bg.addColorStop(0, 'rgba(255,216,107,' + bPulse + ')');
+      bg.addColorStop(1, 'rgba(255,216,107,0)');
+      ctx.beginPath(); ctx.arc(-17, -90, 28, 0, Math.PI * 2);
+      ctx.fillStyle = bg; ctx.fill();
+    }
+  }
+
+  // ── Ears (large fan ears with flap animation) ─────────────────────────
+  function _gnEars(ctx, t) {
+    // Gentle idle ear-flap
+    var flapR =  Math.sin(t * 1.8) * 0.05;  // right ear rotation
+    var flapL = -Math.sin(t * 1.8) * 0.05;  // left ear mirrors
+
+    // RIGHT ear (from viewer = character's left when dir=1)
+    ctx.save();
+    ctx.translate(22, -92);
+    ctx.rotate(flapR);
+    // Outer fan shape (scalloped top approximated with bezier)
+    ctx.beginPath();
+    ctx.moveTo(0, 10);
+    ctx.bezierCurveTo(18, 6, 22, -8, 18, -20);
+    ctx.bezierCurveTo(14, -30, 4, -32, -2, -28);
+    ctx.bezierCurveTo(-10, -24, -12, -12, -8, 0);
+    ctx.bezierCurveTo(-6, 6, -2, 10, 0, 10);
+    ctx.closePath();
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 1.5);
+    // Darker shade on outer rim
+    ctx.fillStyle = C.peachShade;
+    ctx.beginPath();
+    ctx.moveTo(0, 8); ctx.bezierCurveTo(14, 4, 18, -6, 15, -18);
+    ctx.bezierCurveTo(13, -28, 5, -30, 0, -26);
+    ctx.bezierCurveTo(-4, 8, 0, 8, 0, 8); ctx.closePath(); ctx.fill();
+    // Inner ear (soft pink, smaller)
+    ctx.beginPath();
+    ctx.moveTo(0, 4);
+    ctx.bezierCurveTo(10, 2, 14, -6, 10, -16);
+    ctx.bezierCurveTo(7, -24, 0, -24, -3, -18);
+    ctx.bezierCurveTo(-7, -10, -6, 0, 0, 4);
+    ctx.closePath();
+    ctx.fillStyle = C.innerEar; ctx.fill();
+    // Inner ear darker rim line
+    ctx.strokeStyle = '#D4707A'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
+
+    // LEFT ear (mirror)
+    ctx.save();
+    ctx.translate(-22, -92);
+    ctx.rotate(flapL);
+    ctx.beginPath();
+    ctx.moveTo(0, 10);
+    ctx.bezierCurveTo(-18, 6, -22, -8, -18, -20);
+    ctx.bezierCurveTo(-14, -30, -4, -32, 2, -28);
+    ctx.bezierCurveTo(10, -24, 12, -12, 8, 0);
+    ctx.bezierCurveTo(6, 6, 2, 10, 0, 10);
+    ctx.closePath();
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 1.5);
+    ctx.fillStyle = C.peachShade;
+    ctx.beginPath();
+    ctx.moveTo(0, 8); ctx.bezierCurveTo(-14, 4, -18, -6, -15, -18);
+    ctx.bezierCurveTo(-13, -28, -5, -30, 0, -26);
+    ctx.bezierCurveTo(4, 8, 0, 8, 0, 8); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, 4);
+    ctx.bezierCurveTo(-10, 2, -14, -6, -10, -16);
+    ctx.bezierCurveTo(-7, -24, 0, -24, 3, -18);
+    ctx.bezierCurveTo(7, -10, 6, 0, 0, 4);
+    ctx.closePath();
+    ctx.fillStyle = C.innerEar; ctx.fill();
+    ctx.strokeStyle = '#D4707A'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Head (round elephant head, eyes, trunk, tusk, face markings) ──────
+  function _gnHead(ctx, state, t) {
+    // Base head shape — wide rounded
+    ctx.beginPath();
+    ctx.ellipse(0, -92, 24, 22, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 2);
+
+    // Forehead highlight
+    ctx.beginPath();
+    ctx.ellipse(-4, -100, 12, 8, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachHi; ctx.fill();
+
+    // Chin shade
+    ctx.beginPath();
+    ctx.ellipse(2, -76, 10, 5, 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachShade; ctx.fill();
+
+    // Blush circles on cheeks
+    ctx.globalAlpha = 0.55;
+    circle(ctx, -14, -84, 7, C.blush);
+    circle(ctx,  14, -84, 7, C.blush);
+    ctx.globalAlpha = 1;
+
+    // Eyes — big round dark-brown with white catchlight
+    // Blink every ~3.5 s for 0.12 s
+    var blinkPhase = (t * 0.28) % 1;   // 0-1 cycle
+    var isBlinking = (blinkPhase > 0.93);
+    var eyeRY = isBlinking ? 1 : 4.5;
+
+    // Left eye
+    circle(ctx, -9, -93, 5.5, C.white);
+    ctx.beginPath();
+    ctx.ellipse(-9, -93, 4, eyeRY, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#2A1408'; ctx.fill();
+    if (!isBlinking) {
+      circle(ctx, -7, -95, 1.5, C.white);  // top-right catchlight
+    }
+    // Left eyebrow (slightly raised = friendly)
+    ctx.beginPath();
+    ctx.moveTo(-14, -99); ctx.quadraticCurveTo(-9, -102, -4, -99);
+    ctx.strokeStyle = '#4A2808'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+
+    // Right eye
+    circle(ctx, 9, -93, 5.5, C.white);
+    ctx.beginPath();
+    ctx.ellipse(9, -93, 4, eyeRY, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#2A1408'; ctx.fill();
+    if (!isBlinking) {
+      circle(ctx, 11, -95, 1.5, C.white);
+    }
+    // Right eyebrow
+    ctx.beginPath();
+    ctx.moveTo(4, -99); ctx.quadraticCurveTo(9, -102, 14, -99);
+    ctx.strokeStyle = '#4A2808'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+
+    // Small smile crease beside trunk base
+    if (state === 'celebrate') {
+      ctx.beginPath();
+      ctx.arc(8, -84, 5, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.strokeStyle = '#8B4020'; ctx.lineWidth = 1.8; ctx.stroke();
+    }
+
+    // Trunk: starts wide between eyes, S-curve to the right, rounded tip
+    // Underside darker for depth
+    ctx.beginPath();
+    ctx.moveTo(-4, -78);
+    ctx.bezierCurveTo(-6, -72,  2, -62,  8, -60);  // S upper arc
+    ctx.bezierCurveTo(14, -58, 16, -50, 12, -44);  // curve out
+    ctx.bezierCurveTo( 8, -40,  2, -42,  0, -46);  // curl back left
+    ctx.bezierCurveTo(-3, -50, -1, -54,  2, -54);  // tip curl
+    ctx.strokeStyle = C.peachSkin;
+    ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.stroke();
+    // Underside shade (narrower, darker)
+    ctx.beginPath();
+    ctx.moveTo(-3, -78);
+    ctx.bezierCurveTo(-5, -72, 3, -63, 9, -61);
+    ctx.bezierCurveTo(15, -59, 17, -51, 12, -44);
+    ctx.strokeStyle = C.peachShade;
+    ctx.lineWidth = 4; ctx.stroke();
+    // Three faint wrinkle lines across trunk
+    ctx.strokeStyle = 'rgba(200,150,100,0.35)';
+    ctx.lineWidth = 1.2;
+    var twrinkle = [[-1, -70, 7, -70], [5, -58, 14, -56], [8, -47, 14, -46]];
+    for (var tw = 0; tw < twrinkle.length; tw++) {
+      ctx.beginPath();
+      ctx.moveTo(twrinkle[tw][0], twrinkle[tw][1]);
+      ctx.lineTo(twrinkle[tw][2], twrinkle[tw][3]);
+      ctx.stroke();
+    }
+    // Rounded tip dot
+    circle(ctx, 2, -53, 4.5, C.peachShade);
+    circle(ctx, 3, -55, 2.5, C.peachSkin);
+
+    // One small ivory tusk beside trunk base (short, slightly curved)
+    ctx.beginPath();
+    ctx.moveTo(6, -80);
+    ctx.quadraticCurveTo(14, -76, 13, -68);
+    ctx.strokeStyle = C.ivoryTusk; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+    // Tusk shading line
+    ctx.beginPath();
+    ctx.moveTo(7, -79);
+    ctx.quadraticCurveTo(13, -76, 12, -70);
+    ctx.strokeStyle = '#D4C89A'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Tilak mark: red-orange U-shape with dot on forehead
+    ctx.save();
+    ctx.translate(0, -104);
+    // U shape
+    ctx.beginPath();
+    ctx.moveTo(-4, -2);
+    ctx.bezierCurveTo(-5, 2, -3, 5, 0, 5);
+    ctx.bezierCurveTo(3, 5, 5, 2, 4, -2);
+    ctx.strokeStyle = '#C03010'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke();
+    // Centre dot
+    circle(ctx, 0, -4, 2, '#C03010');
+    ctx.restore();
+  }
+
+  // ── Crown (tall 3-tier mukut) ─────────────────────────────────────────
+  function _gnCrown(ctx, t) {
+    // Three tiers: bottom widest → top narrowest
+    var tiers = [
+      { w: 28, h: 8,  y: -110, r: 4 },
+      { w: 22, h: 7,  y: -118, r: 3 },
+      { w: 14, h: 8,  y: -125, r: 3 },
+    ];
+
+    // Draw tiers back to front (bottom first)
+    for (var ti = 0; ti < tiers.length; ti++) {
+      var tr = tiers[ti];
+      var grad = _gnGoldGrad(ctx, 0, tr.y, tr.w);
+      roundRect(ctx, -tr.w / 2, tr.y, tr.w, tr.h, tr.r, null);
+      ctx.fillStyle = grad; ctx.fill(); _gnOutline(ctx, 1.5);
+    }
+
+    // Scalloped base band (decorative arc row)
+    ctx.fillStyle = C.goldDark;
+    for (var sc2 = -3; sc2 <= 3; sc2++) {
+      ctx.beginPath(); ctx.arc(sc2 * 4.5, -110, 3, Math.PI, 0); ctx.fill();
+    }
+
+    // Row of small pearl dots on first tier
+    for (var pe = -3; pe <= 3; pe++) {
+      circle(ctx, pe * 4.5, -106, 1.5, C.cream);
+    }
+
+    // Red ruby in the centre of the second tier
+    circle(ctx, 0, -122, 4.5, C.dhotiBdr);
+    circle(ctx, 0, -122, 3,   '#D44060');
+    circle(ctx, 1, -124, 1,   'rgba(255,200,200,0.8)');  // ruby highlight
+
+    // Tiny top spire
+    ctx.beginPath();
+    ctx.moveTo(-4, -125);
+    ctx.lineTo(0,  -132);
+    ctx.lineTo(4,  -125);
+    ctx.fillStyle = _gnGoldGrad(ctx, 0, -130, 5); ctx.fill(); _gnOutline(ctx, 1.5);
+    circle(ctx, 0, -132, 2.5, C.goldLight);
+  }
+
+  // ── Back view (dir='up') — simple dignified back ──────────────────────
+  function _gnBackView(ctx, state, t) {
+    // Back of dhoti + feet visible
+    ctx.beginPath();
+    ctx.ellipse(0, -30, 22, 26, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#F26B38'; ctx.fill(); _gnOutline(ctx, 1.5);
+    // Dhoti hem border
+    ctx.beginPath();
+    ctx.moveTo(-20, -14); ctx.quadraticCurveTo(0, -8, 20, -14);
+    ctx.strokeStyle = C.dhotiBdr; ctx.lineWidth = 3; ctx.stroke();
+    // Feet peeking below
+    ellipse(ctx, -9, 0, 8, 5, C.peachSkin);
+    ellipse(ctx,  9, 0, 8, 5, C.peachSkin);
+    // Back torso
+    ctx.beginPath();
+    ctx.ellipse(0, -56, 16, 14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 1.5);
+    // Back of crown
+    ctx.beginPath();
+    ctx.ellipse(0, -92, 24, 22, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 2);
+    // Big ears from behind (outline only)
+    ctx.beginPath();
+    ctx.ellipse(-24, -96, 18, 22, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 1.5);
+    ctx.beginPath();
+    ctx.ellipse(24, -96, 18, 22, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill(); _gnOutline(ctx, 1.5);
+    // Back crown tiers (simplified)
+    var bg = _gnGoldGrad(ctx, 0, -116, 14);
+    roundRect(ctx, -14, -116, 28, 8, 4, null);
+    ctx.fillStyle = bg; ctx.fill(); _gnOutline(ctx, 1.5);
+    roundRect(ctx, -10, -124, 20, 7, 3, null);
+    ctx.fillStyle = _gnGoldGrad(ctx, 0, -124, 10); ctx.fill(); _gnOutline(ctx, 1.5);
+    // Neck
+    ctx.beginPath();
+    ctx.ellipse(0, -76, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill();
+  }
+
+  // ── Main drawGanesha — public, signature unchanged ─────────────────────
+  // Call sites: drawGanesha(ctx, x, y, t, opts)
+  // opts.state : 'idle'|'walk'|'celebrate'|'bless'
+  // opts.dir   : 1 (right/front) | -1 (left) — mirrors horizontally
+  // opts.scale : number (default 1, ≈110 px tall)
+  // opts.squash: 0-1 subtle vertical squash
   function drawGanesha(ctx, x, y, t, opts) {
     opts = opts || {};
-    var state   = opts.state  || 'idle';
-    var dir     = opts.dir    || 1;       // 1=right, -1=left (facing)
-    var squash  = opts.squash || 0;       // 0-1 extra squash
-    var sc      = (opts.scale || 1) * (1 - squash * 0.08);
+    var state  = opts.state  || 'idle';
+    var dir    = opts.dir    || 1;      // +1 = front/right, -1 = left
+    var squash = opts.squash || 0;
+    var sc     = (opts.scale || 1) * (1 - squash * 0.08);
 
-    // Idle bob: gentle vertical sine
-    var bob = (state === 'idle' || state === 'celebrate')
-              ? Math.sin(t * 2.2) * 2.5
-              : 0;
+    // Animation values
+    var bob      = (state === 'idle' || state === 'bless')
+                   ? Math.sin(t * 2.0) * 2.5 : 0;
+    var celebBob = (state === 'celebrate')
+                   ? Math.abs(Math.sin(t * 4.5)) * 7 : 0;
+    var walkLean = (state === 'walk') ? Math.sin(t * 5) * 0.055 : 0;
+    var legSwing = (state === 'walk') ? Math.sin(t * 5) : 0;
 
-    // Walk sway: slight rotation + side bob
-    var walkLean = (state === 'walk') ? Math.sin(t * 5) * 0.06 : 0;
-
-    // Celebrate: bigger bob + arms up
-    var celebBob = (state === 'celebrate') ? Math.abs(Math.sin(t * 4)) * 6 : 0;
-
-    ovalShadow(ctx, x, y, 28 * sc, 7 * sc);
+    ovalShadow(ctx, x, y, 26 * sc, 7 * sc);
 
     ctx.save();
     ctx.translate(x, y + bob - celebBob);
     ctx.scale(dir * sc, sc);
     ctx.rotate(walkLean);
 
-    // ── Feet (two small rounded bumps) ────────────────────────────────
-    ellipse(ctx, -10, -4, 9, 5, C.skinLight);
-    ellipse(ctx,  10, -4, 9, 5, C.skinLight);
-
-    // ── Dhoti (saffron, dome-shaped) ──────────────────────────────────
-    ctx.beginPath();
-    ctx.ellipse(0, -22, 22, 22, 0, 0, Math.PI * 2);
-    ctx.fillStyle = C.saffron;
-    ctx.fill();
-    // Dhoti fold lines
-    ctx.strokeStyle = 'rgba(180,80,20,0.35)';
-    ctx.lineWidth = 1;
-    for (var i = -1; i <= 1; i++) {
-      ctx.beginPath();
-      ctx.moveTo(i * 7, -10);
-      ctx.lineTo(i * 4, -36);
-      ctx.stroke();
+    if (state === 'up' || opts.dir === 0) {
+      // Back view — no mirroring needed
+      _gnBackView(ctx, state, t);
+    } else {
+      // Front / side view
+      // Draw order: feet → dhoti/body → arms → ears → head/trunk/crown
+      _gnFeet(ctx, legSwing, state);
+      _gnDhotiBody(ctx, state, t);
+      _gnArms(ctx, state, t);
+      _gnEars(ctx, t);
+      _gnHead(ctx, state, t);
+      _gnCrown(ctx, t);
     }
 
-    // ── Belly (big round, cream) ───────────────────────────────────────
-    ellipse(ctx, 0, -46, 18, 17, C.skinLight);
-    // Navel dot
-    circle(ctx, 0, -46, 2.5, 'rgba(180,120,80,0.5)');
-
-    // ── Body / chest ──────────────────────────────────────────────────
-    ellipse(ctx, 0, -60, 15, 12, C.skinLight);
-
-    // Sacred thread (janeu) — thin diagonal line
-    ctx.beginPath();
-    ctx.moveTo(-8, -52);
-    ctx.lineTo(8, -70);
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // ── Arms ──────────────────────────────────────────────────────────
-    var armSwing = (state === 'walk') ? Math.sin(t * 5) * 8 : 0;
-    var armUp    = (state === 'celebrate') ? -20 : 0;
-
-    // Right arm (holds modak) — forward arm
-    ctx.save();
-    ctx.translate(16, -60 + armSwing);
-    ctx.rotate(0.4 + (state === 'celebrate' ? -0.8 : 0));
-    roundRect(ctx, 0, -6, 10, 20, 5, C.skinLight);
-    // Hand
-    ellipse(ctx, 5, 14, 7, 6, C.skinLight);
     ctx.restore();
-
-    // Left arm (blessing gesture) — raised slightly
-    ctx.save();
-    ctx.translate(-16, -60 - armSwing + armUp);
-    ctx.rotate(-0.3 + (state === 'celebrate' ? 0.8 : 0));
-    roundRect(ctx, -10, -6, 10, 20, 5, C.skinLight);
-    // Blessing hand — open palm
-    ellipse(ctx, -5, 14, 7, 6, C.skinLight);
-    // Small fingers (3 lines)
-    ctx.strokeStyle = 'rgba(180,120,80,0.4)';
-    ctx.lineWidth = 1;
-    for (var f = -3; f <= 3; f += 3) {
-      ctx.beginPath();
-      ctx.moveTo(-5 + f, 12);
-      ctx.lineTo(-5 + f, 18);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // ── Neck ──────────────────────────────────────────────────────────
-    ellipse(ctx, 0, -72, 8, 6, C.skinLight);
-
-    // ── Head (large, round — elephant) ────────────────────────────────
-    // Head is the most important feature — big and clearly elephant
-    ellipse(ctx, 0, -88, 24, 22, C.skinLight);
-    outline(ctx, 1.2);
-
-    // ── Ears (large, flat, fanning out) ───────────────────────────────
-    // Right ear
-    ctx.beginPath();
-    ctx.ellipse(22, -88, 14, 18, 0.3, 0, Math.PI * 2);
-    ctx.fillStyle = C.skinLight;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(22, -88, 9, 12, 0.3, 0, Math.PI * 2);
-    ctx.fillStyle = '#F4C0A0';
-    ctx.fill();
-    // Left ear
-    ctx.beginPath();
-    ctx.ellipse(-22, -88, 14, 18, -0.3, 0, Math.PI * 2);
-    ctx.fillStyle = C.skinLight;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(-22, -88, 9, 12, -0.3, 0, Math.PI * 2);
-    ctx.fillStyle = '#F4C0A0';
-    ctx.fill();
-
-    // ── Trunk (curled downward, signature feature) ─────────────────────
-    ctx.beginPath();
-    ctx.moveTo(4, -76);                        // base of trunk on nose
-    ctx.bezierCurveTo(16, -68, 22, -60, 18, -52); // curve out
-    ctx.bezierCurveTo(14, -44, 6,  -42,  2, -48); // curl back
-    ctx.bezierCurveTo(-2, -54, -2, -58,  4, -56); // tip curl
-    ctx.strokeStyle = C.skinLight;
-    ctx.lineWidth   = 7;
-    ctx.lineCap     = 'round';
-    ctx.stroke();
-    // Trunk tip (darker)
-    circle(ctx, 3, -55, 4, '#D9A882');
-
-    // ── One small tusk (right side, white, curved) ────────────────────
-    ctx.beginPath();
-    ctx.moveTo(8, -78);
-    ctx.quadraticCurveTo(18, -74, 16, -66);
-    ctx.strokeStyle = C.cream;
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    // ── Eyes (kind, slightly upturned) ────────────────────────────────
-    // Left eye
-    circle(ctx, -9, -92, 4.5, C.white);
-    circle(ctx, -9, -92, 2.5, '#3A2010');
-    circle(ctx, -8, -93, 1,   C.white);  // highlight
-    // Right eye
-    circle(ctx, 9,  -92, 4.5, C.white);
-    circle(ctx, 9,  -92, 2.5, '#3A2010');
-    circle(ctx, 10, -93, 1,   C.white);
-
-    // ── Forehead bindi / tilak ────────────────────────────────────────
-    ctx.beginPath();
-    ctx.arc(0, -99, 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = C.maroon;
-    ctx.fill();
-    // Gold centre dot
-    circle(ctx, 0, -99, 1.5, C.gold);
-
-    // ── Crown (small, jewelled) ────────────────────────────────────────
-    ctx.beginPath();
-    // Crown band
-    ctx.fillStyle = C.gold;
-    ctx.fillRect(-14, -107, 28, 6);
-    // Three crown points
-    for (var p = -1; p <= 1; p++) {
-      ctx.beginPath();
-      ctx.moveTo(p * 9 - 4, -107);
-      ctx.lineTo(p * 9,     -116);
-      ctx.lineTo(p * 9 + 4, -107);
-      ctx.fillStyle = C.gold;
-      ctx.fill();
-    }
-    // Gem on centre point
-    circle(ctx, 0, -113, 3, C.maroon);
-    circle(ctx, 0, -113, 1.5, '#FF6B6B');
-
-    // ── Modak in right hand ───────────────────────────────────────────
-    var modakY = -60 + armSwing + (state === 'celebrate' ? -8 : 0);
-    ctx.save();
-    ctx.translate(26, modakY);
-    ctx.scale(0.7, 0.7);
-    _drawModakShape(ctx, 0, 0);
-    ctx.restore();
-
-    ctx.restore();  // end character transform
   }
 
   // ── Modak shape (standalone, also used inline) ────────────────────────
@@ -1015,6 +1351,121 @@ G.art = (function () {
     ctx.restore();
   }
 
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  GANESHA ON MUSHAK — Level 2 runner back view                   ║
+  // ║  drawGaneshaOnMushak(ctx, x, y, t, opts)                        ║
+  // ║  x,y = bottom centre of Mushak. opts = { scale, wobble }        ║
+  // ╚══════════════════════════════════════════════════════════════════╝
+  function drawGaneshaOnMushak(ctx, x, y, t, opts) {
+    opts = opts || {};
+    var sc = opts.scale || 1;
+    var wobble = opts.wobble || 0;  // hit wobble 0-1
+
+    ovalShadow(ctx, x, y, 30 * sc, 8 * sc);
+
+    var bob     = Math.sin(t * 4) * (1.5 + wobble * 3);
+    var wTilt   = Math.sin(t * 6) * wobble * 0.15;  // wobble tilt
+
+    ctx.save();
+    ctx.translate(x, y + bob);
+    ctx.rotate(wTilt);
+    ctx.scale(sc, sc);
+
+    // ── Mushak (simplified back view, same style as drawMushak) ──────
+    // Body — grey-brown oval
+    ctx.beginPath();
+    ctx.ellipse(0, -14, 18, 12, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#C8A8A0'; ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
+    // Rump highlight
+    ctx.beginPath();
+    ctx.ellipse(-4, -18, 8, 6, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#DCC0B8'; ctx.fill();
+    // Tail curling to the right
+    ctx.beginPath();
+    ctx.moveTo(14, -12);
+    ctx.bezierCurveTo(22, -8, 24, -2, 18, 2);
+    ctx.bezierCurveTo(14, 4, 12, 2, 14, -2);
+    ctx.strokeStyle = '#A08080'; ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round'; ctx.stroke();
+    // Back feet (two oval bumps)
+    ellipse(ctx, -10, -2, 6, 4, '#B89890');
+    ellipse(ctx,  10, -2, 6, 4, '#B89890');
+    // Two round back ears
+    circle(ctx, -12, -24, 7, '#C8A8A0');
+    circle(ctx,  12, -24, 7, '#C8A8A0');
+    circle(ctx, -12, -24, 4, '#E8C0C0');
+    circle(ctx,  12, -24, 4, '#E8C0C0');
+
+    // ── Ganesha seated on Mushak's back (back view) ───────────────────
+    // Seat position is on top of Mushak (~-28 from ground)
+    ctx.save();
+    ctx.translate(0, -28);
+
+    // Dhoti (seated — wide flattened dome)
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 20, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#F26B38'; ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
+    // Dhoti hem
+    ctx.beginPath();
+    ctx.moveTo(-18, -6); ctx.quadraticCurveTo(0, -2, 18, -6);
+    ctx.strokeStyle = C.dhotiBdr; ctx.lineWidth = 2.5; ctx.stroke();
+
+    // Back torso
+    ctx.beginPath();
+    ctx.ellipse(0, -28, 14, 12, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
+    // Torso shade
+    ctx.beginPath();
+    ctx.ellipse(0, -22, 10, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachShade; ctx.fill();
+
+    // Two arms hanging at the sides (back view — simple rounded shapes)
+    ellipse(ctx, -16, -28, 7, 5, C.peachSkin);
+    ellipse(ctx,  16, -28, 7, 5, C.peachSkin);
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(-16, -28, 7, 5, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse( 16, -28, 7, 5, 0, 0, Math.PI * 2); ctx.stroke();
+
+    // Head (back — large round elephant head)
+    ctx.beginPath();
+    ctx.ellipse(0, -48, 22, 20, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+    // Head highlight
+    ctx.beginPath();
+    ctx.ellipse(-4, -54, 10, 7, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachHi; ctx.fill();
+
+    // Big ears from behind
+    ctx.beginPath();
+    ctx.ellipse(-20, -52, 15, 20, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(20, -52, 15, 20, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.peachSkin; ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Crown (simplified back view — 2 tiers)
+    var cg1 = _gnGoldGrad(ctx, 0, -68, 14);
+    roundRect(ctx, -14, -72, 28, 8, 4, null);
+    ctx.fillStyle = cg1; ctx.fill(); _gnOutline(ctx, 1.5);
+    var cg2 = _gnGoldGrad(ctx, 0, -80, 10);
+    roundRect(ctx, -10, -80, 20, 8, 3, null);
+    ctx.fillStyle = cg2; ctx.fill(); _gnOutline(ctx, 1.5);
+    // Crown spire tip
+    ctx.beginPath();
+    ctx.moveTo(-4, -80); ctx.lineTo(0, -88); ctx.lineTo(4, -80);
+    ctx.fillStyle = C.goldLight; ctx.fill();
+    circle(ctx, 0, -88, 2.5, C.goldLight);
+
+    ctx.restore();  // end seated Ganesha
+    ctx.restore();  // end combined sprite
+  }
+
   // ── Public API ────────────────────────────────────────────────────────
   return {
     // Utilities
@@ -1027,8 +1478,9 @@ G.art = (function () {
     drawWithTilt:   drawWithTilt,
     outline:        outline,
     // Characters
-    drawGanesha:    drawGanesha,
-    drawMushak:     drawMushak,
+    drawGanesha:          drawGanesha,
+    drawGaneshaOnMushak:  drawGaneshaOnMushak,
+    drawMushak:           drawMushak,
     drawParvati:    drawParvati,
     drawShiva:      drawShiva,
     drawKartikeya:  drawKartikeya,
