@@ -141,17 +141,10 @@
 
     // ── Draw current scene ────────────────────────────────────────────
     ctx.save();
-    try {
-      if (currentScene && currentScene.draw) {
-        currentScene.draw(ctx);
-      } else {
-        G.art.clearBg(ctx, G.COL.darkBg);
-      }
-    } catch (err) {
-      // Surface draw errors clearly instead of silently breaking the loop
-      G.art.clearBg(ctx, '#300');
-      G.art.centeredText(ctx, 'Draw error: ' + err.message, G.W/2, G.H/2, 20, '#fff');
-      console.error('Scene draw error:', err);
+    if (currentScene && currentScene.draw) {
+      currentScene.draw(ctx);
+    } else {
+      G.art.clearBg(ctx, G.COL.darkBg);
     }
 
     // Draw fade overlay on top of the scene
