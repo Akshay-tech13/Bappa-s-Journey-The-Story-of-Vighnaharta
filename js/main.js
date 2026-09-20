@@ -111,6 +111,8 @@
       fadeAlpha  = fadeTimer / FADE_SECS;
       if (fadeAlpha >= 1) {
         fadeAlpha = 1;
+        // Call destroy on outgoing scene before switching
+        if (currentScene && currentScene.destroy) currentScene.destroy();
         // Switch scene at the black frame
         var next = G.scenes[pendingName];
         if (next) {

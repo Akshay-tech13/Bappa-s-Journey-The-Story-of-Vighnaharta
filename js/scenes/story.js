@@ -221,9 +221,15 @@
   var SKIP_RECT    = null;
 
   // ── Input ─────────────────────────────────────────────────────────────
+  // ignoreUntil: timestamp (ms) before which input is ignored.
+  // Prevents the click that launched the story scene from also advancing it.
+  var ignoreUntil = 0;
   var clickHandler = null;
   function attachInput() {
+    // Ignore any input for 350 ms after init (covers the fade + the triggering click)
+    ignoreUntil = performance.now() + 350;
     clickHandler = function (e) {
+      if (performance.now() < ignoreUntil) return;
       var p = G.ui.toLogical(e);
       if (SKIP_RECT && G.ui.isButtonHit(p.x, p.y, SKIP_RECT)) {
         // Skip all remaining slides

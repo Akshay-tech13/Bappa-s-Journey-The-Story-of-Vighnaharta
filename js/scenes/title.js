@@ -62,9 +62,12 @@
   }
 
   // Input handler
+  var ignoreUntil  = 0;
   var clickHandler = null;
   function attachInput() {
+    ignoreUntil = performance.now() + 350;
     clickHandler = function (e) {
+      if (performance.now() < ignoreUntil) return;
       G.audio.unlock();
       var p = G.ui.toLogical(e);
       if (playRect && G.ui.isButtonHit(p.x, p.y, playRect)) {
