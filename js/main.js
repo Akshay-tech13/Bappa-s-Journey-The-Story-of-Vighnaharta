@@ -69,15 +69,17 @@
   // ── Score / persistent state ──────────────────────────────────────────
   // Shared score bucket reset at the start of each full run.
   G.run = {
-    levelScores: {},   // { level1: 300, level3: 450, … }
-    levelStars:  {},   // { level1: 3, … }
+    levelScores:  {},   // { level1: 300, level3: 450, … }
+    levelStars:   {},   // { level1: 3, … }
     blessingScore: 0,
+    returnTo:     null, // if set, level "Next" returns here instead of following LEVEL_ORDER
   };
 
   G.resetRun = function () {
-    G.run.levelScores  = {};
-    G.run.levelStars   = {};
+    G.run.levelScores   = {};
+    G.run.levelStars    = {};
     G.run.blessingScore = 0;
+    G.run.returnTo      = null;
   };
 
   // Safe localStorage helpers

@@ -131,6 +131,8 @@ function _l2attachClick() {
     }
     // Next button (complete screen)
     if (_l2phase === 'complete' && _l2nextRect && G.ui.isButtonHit(p.x, p.y, _l2nextRect)) {
+      var _l2ret = G.run.returnTo;
+      if (_l2ret) { G.run.returnTo = null; G.sceneManager.goto(_l2ret); return; }
       var idx  = G.LEVEL_ORDER.indexOf('level2');
       var next = G.LEVEL_ORDER[idx + 1];
       G.sceneManager.goto(next || 'recap');

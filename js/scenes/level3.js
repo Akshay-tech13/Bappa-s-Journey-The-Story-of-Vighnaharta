@@ -237,6 +237,9 @@ G.scenes['level3'] = {
   },
 
   _finish: function () {
+    // Check for replay override (set by end.js replay)
+    var ret = G.run.returnTo;
+    if (ret) { G.run.returnTo = null; G.sceneManager.goto(ret); return; }
     // Find next scene in LEVEL_ORDER after level3
     var order = G.LEVEL_ORDER;
     var idx   = order.indexOf('level3');

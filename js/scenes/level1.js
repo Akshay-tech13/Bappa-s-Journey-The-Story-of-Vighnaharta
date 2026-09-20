@@ -244,7 +244,9 @@ function _l1attachClick(){
     if(_l1phase!=='complete') return;
     var p=G.ui.toLogical(e);
     if(_l1nextRect&&G.ui.isButtonHit(p.x,p.y,_l1nextRect)){
-      // Advance to the next level in LEVEL_ORDER, or recap
+      // Advance to next level in order, or to returnTo override (set by end.js replay)
+      var _l1ret = G.run.returnTo;
+      if (_l1ret) { G.run.returnTo = null; G.sceneManager.goto(_l1ret); return; }
       var idx=G.LEVEL_ORDER.indexOf('level1');
       var next=G.LEVEL_ORDER[idx+1];
       G.sceneManager.goto(next||'recap');
