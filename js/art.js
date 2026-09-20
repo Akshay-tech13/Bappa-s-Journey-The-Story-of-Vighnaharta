@@ -1466,6 +1466,379 @@ G.art = (function () {
     ctx.restore();  // end combined sprite
   }
 
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  BOY — Parvati's little son (slides 0-2, before elephant head)  ║
+  // ║  drawBoy(ctx, x, y, t, opts)                                    ║
+  // ║  opts = { state, dir, scale, build }                            ║
+  // ║  state: 'idle' | 'guard' | 'forming'                            ║
+  // ║  dir  : 1 (front) | -1 (left) | or 'right'/'left' strings       ║
+  // ║  build: 0..1 for 'forming' pose (paste blob → full boy)         ║
+  // ╚══════════════════════════════════════════════════════════════════╝
+
+  // ── Shared outline for boy (same warm-brown, rounded) ─────────────────
+  function _boyOutline(ctx, w) {
+    ctx.strokeStyle = C.outline;
+    ctx.lineWidth   = w || 1.8;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+  }
+
+  // ── Tiny paste swirl marks on arms/shoulders ──────────────────────────
+  // Drawn as three small darker curved strokes
+  function _boySwirls(ctx) {
+    ctx.strokeStyle = C.boyShade;
+    ctx.lineWidth   = 1.5;
+    ctx.lineCap     = 'round';
+    // Upper-left arm swirl
+    ctx.beginPath();
+    ctx.moveTo(-8, -62);
+    ctx.quadraticCurveTo(-13, -60, -10, -56);
+    ctx.stroke();
+    // Upper-right arm swirl
+    ctx.beginPath();
+    ctx.moveTo(8, -62);
+    ctx.quadraticCurveTo(13, -60, 10, -56);
+    ctx.stroke();
+    // Chest centre swirl (smallest)
+    ctx.beginPath();
+    ctx.moveTo(-3, -68);
+    ctx.quadraticCurveTo(0, -66, 3, -68);
+    ctx.stroke();
+  }
+
+  // ── Feet + short chibi legs (matching Ganesha proportions) ────────────
+  function _boyFeet(ctx, legSwing) {
+    var ls = legSwing || 0;
+
+    // Left leg
+    ctx.save();
+    ctx.translate(-8, 0);
+    ctx.rotate(-ls * 0.18);
+    roundRect(ctx, -5, -15, 10, 13, 4, C.boySkin);
+    ctx.fillStyle = C.boyShade;
+    ctx.beginPath(); ctx.ellipse(2, -8, 3, 4, 0.2, 0, Math.PI * 2); ctx.fill();
+    ellipse(ctx, 0, 0, 8, 5, C.boySkin);
+    ctx.restore();
+
+    // Right leg
+    ctx.save();
+    ctx.translate(8, 0);
+    ctx.rotate(ls * 0.18);
+    roundRect(ctx, -5, -15, 10, 13, 4, C.boySkin);
+    ctx.fillStyle = C.boyShade;
+    ctx.beginPath(); ctx.ellipse(-2, -8, 3, 4, -0.2, 0, Math.PI * 2); ctx.fill();
+    ellipse(ctx, 0, 0, 8, 5, C.boySkin);
+    ctx.restore();
+  }
+
+  // ── Dhoti + bare torso + arms ─────────────────────────────────────────
+  function _boyBody(ctx, state, t, armAngleR, armAngleL) {
+    // Cream dhoti (waist to knees)
+    ctx.beginPath();
+    ctx.moveTo(-20, -16);
+    ctx.bezierCurveTo(-23, -28, -20, -42, 0, -42);
+    ctx.bezierCurveTo(20, -42, 23, -28, 20, -16);
+    ctx.quadraticCurveTo(0, -10, -20, -16);
+    ctx.closePath();
+    ctx.fillStyle = C.cream; ctx.fill(); _boyOutline(ctx, 1.5);
+
+    // Saffron-yellow hem border
+    ctx.beginPath();
+    ctx.moveTo(-20, -16);
+    ctx.quadraticCurveTo(0, -9, 20, -16);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-20, -16);
+    ctx.quadraticCurveTo(0, -9, 20, -16);
+    ctx.strokeStyle = C.goldLight; ctx.lineWidth = 1.2; ctx.stroke();
+
+    // Bare belly (round chibi tummy)
+    var bellyB = (state === 'idle') ? Math.sin(t * 2) * 0.8 : 0;
+    ctx.beginPath();
+    ctx.ellipse(0, -52 + bellyB, 15, 14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boySkin; ctx.fill(); _boyOutline(ctx, 1.5);
+    // Belly shade
+    ctx.beginPath();
+    ctx.ellipse(0, -46 + bellyB, 11, 5, 0, 0, Math.PI); ctx.fillStyle = C.boyShade; ctx.fill();
+    // Navel
+    circle(ctx, 0, -50 + bellyB, 2, C.boyShade);
+
+    // Chest / torso
+    ctx.beginPath();
+    ctx.ellipse(0, -63, 12, 9, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boySkin; ctx.fill(); _boyOutline(ctx, 1.5);
+    // Chest centre highlight
+    ctx.beginPath();
+    ctx.ellipse(-2, -67, 5, 4, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = C.boyHi; ctx.fill();
+
+    // Paste swirl marks
+    _boySwirls(ctx);
+
+    // Small gold bracelets (wrist area, drawn before arms so arms cover)
+    // — drawn inside arm blocks below
+
+    // Right arm (rotation passed in)
+    ctx.save();
+    ctx.translate(15, -62);
+    ctx.rotate(armAngleR);
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.bezierCurveTo(5, 3, 5, 12, 3, 20);
+    ctx.bezierCurveTo(-3, 20, -5, 12, -3, 4); ctx.closePath();
+    ctx.fillStyle = C.boySkin; ctx.fill(); _boyOutline(ctx, 1.5);
+    // Arm shade
+    ctx.fillStyle = C.boyShade;
+    ctx.beginPath(); ctx.ellipse(2, 11, 2, 4, 0.2, 0, Math.PI * 2); ctx.fill();
+    // Gold bracelet
+    ctx.beginPath(); ctx.arc(0, 18, 4, 0, Math.PI * 2);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2; ctx.stroke();
+    // Hand (round palm)
+    ctx.beginPath(); ctx.ellipse(0, 24, 5, 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boySkin; ctx.fill(); _boyOutline(ctx, 1.5);
+    // Finger bumps
+    ctx.fillStyle = C.boySkin;
+    for (var fa = -3; fa <= 3; fa += 2) {
+      ctx.beginPath(); ctx.arc(fa, 27, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+
+    // Left arm (rotation passed in; 'guard' raises it)
+    ctx.save();
+    ctx.translate(-15, -62);
+    ctx.rotate(armAngleL);
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.bezierCurveTo(-5, 3, -5, 12, -3, 20);
+    ctx.bezierCurveTo(3, 20, 5, 12, 3, 4); ctx.closePath();
+    ctx.fillStyle = C.boySkin; ctx.fill(); _boyOutline(ctx, 1.5);
+    ctx.fillStyle = C.boyShade;
+    ctx.beginPath(); ctx.ellipse(-2, 11, 2, 4, -0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 18, 4, 0, Math.PI * 2);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 24, 5, 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boySkin; ctx.fill(); _boyOutline(ctx, 1.5);
+    ctx.fillStyle = C.boySkin;
+    for (var fb = -3; fb <= 3; fb += 2) {
+      ctx.beginPath(); ctx.arc(fb, 27, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── Head: round face, hair topknot, eyes, smile ───────────────────────
+  function _boyHead(ctx, state, t, build) {
+    build = (build === undefined) ? 1 : build;
+    // Fade eyes in during 'forming' once build > 0.85
+    var eyeAlpha = Math.max(0, Math.min(1, (build - 0.85) / 0.15));
+
+    // Base head shape (round, slightly wide)
+    ctx.beginPath();
+    ctx.ellipse(0, -85, 22, 20, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boySkin; ctx.fill(); _boyOutline(ctx, 2);
+
+    // Forehead highlight
+    ctx.beginPath();
+    ctx.ellipse(-3, -93, 10, 7, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = C.boyHi; ctx.fill();
+
+    // Chin shade
+    ctx.beginPath();
+    ctx.ellipse(2, -70, 9, 4, 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = C.boyShade; ctx.fill();
+
+    // Rosy cheeks
+    ctx.globalAlpha = 0.45;
+    circle(ctx, -13, -80, 6, C.blush);
+    circle(ctx,  13, -80, 6, C.blush);
+    ctx.globalAlpha = 1;
+
+    // Eyes (blink every ~3.5 s)
+    ctx.globalAlpha = eyeAlpha;
+    var blink  = ((t * 0.28) % 1) > 0.93;
+    var eyeRY  = blink ? 1 : 4.5;
+
+    // Left eye
+    circle(ctx, -8, -86, 5.5, C.white);
+    ctx.beginPath();
+    ctx.ellipse(-8, -86, 4, eyeRY, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#2A1408'; ctx.fill();
+    if (!blink) circle(ctx, -6, -88, 1.5, C.white);
+    // Left brow (friendly, slight arch)
+    ctx.beginPath();
+    ctx.moveTo(-13, -93); ctx.quadraticCurveTo(-8, -96, -3, -93);
+    ctx.strokeStyle = '#4A2808'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.stroke();
+
+    // Right eye
+    circle(ctx, 8, -86, 5.5, C.white);
+    ctx.beginPath();
+    ctx.ellipse(8, -86, 4, eyeRY, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#2A1408'; ctx.fill();
+    if (!blink) circle(ctx, 10, -88, 1.5, C.white);
+    // Right brow
+    ctx.beginPath();
+    ctx.moveTo(3, -93); ctx.quadraticCurveTo(8, -96, 13, -93);
+    ctx.strokeStyle = '#4A2808'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.stroke();
+
+    // Small nose (two little dots)
+    circle(ctx, -2, -79, 1.5, C.boyShade);
+    circle(ctx,  2, -79, 1.5, C.boyShade);
+
+    // Brave little smile
+    ctx.beginPath();
+    ctx.arc(0, -76, 7, 0.15, Math.PI - 0.15);
+    ctx.strokeStyle = '#7A4020'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+
+    ctx.globalAlpha = 1;
+
+    // Sandalwood tilak dot on forehead
+    circle(ctx, 0, -97, 3, '#C07030');
+    circle(ctx, 0, -97, 1.5, '#E0A050');
+
+    // Black hair — peeking out beneath topknot (small arc)
+    ctx.beginPath();
+    ctx.ellipse(0, -100, 20, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boyHair; ctx.fill();
+    // Topknot bun
+    ctx.beginPath();
+    ctx.ellipse(0, -109, 8, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boyHair; ctx.fill(); _boyOutline(ctx, 1.5);
+    // Saffron ribbon tied around topknot
+    ctx.beginPath();
+    ctx.moveTo(-8, -108);
+    ctx.bezierCurveTo(-10, -112, -6, -116, 0, -114);
+    ctx.bezierCurveTo(6, -112, 10, -108, 8, -108);
+    ctx.strokeStyle = C.boyRibbon; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+    // Ribbon bow loop left
+    ctx.beginPath();
+    ctx.moveTo(-8, -108);
+    ctx.bezierCurveTo(-14, -116, -10, -120, -6, -116);
+    ctx.strokeStyle = C.boyRibbon; ctx.lineWidth = 2.5; ctx.stroke();
+    // Ribbon bow loop right
+    ctx.beginPath();
+    ctx.moveTo(8, -108);
+    ctx.bezierCurveTo(14, -116, 10, -120, 6, -116);
+    ctx.strokeStyle = C.boyRibbon; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  // ── 'forming' pose: paste blob → boy materialising ────────────────────
+  // build 0..1 : 0=glowing blob, 0.5=half emerged, 1=fully formed
+  function _boyForming(ctx, x, y, t, sc, build) {
+    var b = Math.max(0, Math.min(1, build));
+
+    // Ground glow (always present)
+    var gGrd = ctx.createRadialGradient(x, y, 2, x, y, 36 * sc);
+    gGrd.addColorStop(0, 'rgba(217,166,110,0.9)');
+    gGrd.addColorStop(0.5, 'rgba(230,180,80,0.55)');
+    gGrd.addColorStop(1, 'rgba(255,200,80,0)');
+    ctx.beginPath(); ctx.arc(x, y, 36 * sc, 0, Math.PI * 2);
+    ctx.fillStyle = gGrd; ctx.fill();
+
+    // Paste blob base (grows from flat to full height as build rises)
+    var blobH = 20 + b * 80;   // blob height in logical px (before scale)
+    var blobW = 14 + b * 8;
+    ctx.save();
+    ctx.translate(x, y - blobH * sc * 0.5);
+    ctx.scale(sc, sc);
+    // Blob body
+    ctx.beginPath();
+    ctx.ellipse(0, 0, blobW, blobH * 0.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.boySkin;
+    ctx.globalAlpha = 0.5 + b * 0.5;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // Sparkle particles (8 fixed positions, orbit + drift upward)
+    var sparkleSeeds = [0, 0.78, 1.57, 2.36, 3.14, 3.93, 4.71, 5.50];
+    for (var si = 0; si < sparkleSeeds.length; si++) {
+      var ang  = sparkleSeeds[si] + t * 1.8;
+      var orb  = (20 + si * 4) * sc * b;
+      var drift = Math.sin(t * 2.5 + si) * 6 * sc;
+      var px   = x + Math.cos(ang) * orb;
+      var py   = y - blobH * sc * 0.5 + Math.sin(ang * 0.7) * orb * 0.5 - drift;
+      var sz   = (1.5 + (si % 3)) * sc;
+      var spAlpha = (0.4 + b * 0.6) * (0.6 + Math.sin(t * 4 + si) * 0.4);
+      ctx.save();
+      ctx.globalAlpha = spAlpha;
+      ctx.fillStyle = (si % 2 === 0) ? C.goldLight : C.goldDark;
+      // Four-point star sparkle
+      ctx.beginPath();
+      ctx.moveTo(px, py - sz * 2);
+      ctx.lineTo(px + sz * 0.5, py);
+      ctx.lineTo(px, py + sz * 2);
+      ctx.lineTo(px - sz * 0.5, py);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // As build approaches 1 draw the full boy with global alpha fading in
+    if (b > 0.3) {
+      var bodyAlpha = Math.min(1, (b - 0.3) / 0.5);
+      // Clip draw to below-emerging-line (reveal from bottom to top)
+      ctx.save();
+      ctx.globalAlpha = bodyAlpha;
+      ctx.beginPath();
+      // Reveal rectangle: bottom of sprite upward as build rises
+      var revealY = y - b * 120 * sc;
+      ctx.rect(x - 60 * sc, revealY, 120 * sc, y - revealY + 10);
+      ctx.clip();
+      // Draw boy body parts directly (without outer ovalShadow to keep clean)
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(sc, sc);
+      _boyFeet(ctx, 0);
+      _boyBody(ctx, 'idle', t, 0.3, -0.3);
+      _boyHead(ctx, 'idle', t, b);
+      ctx.restore();
+      ctx.restore();
+    }
+  }
+
+  // ── drawBoy — public entry point ─────────────────────────────────────
+  // Signature: drawBoy(ctx, x, y, t, opts)
+  //   opts.state : 'idle' | 'guard' | 'forming'
+  //   opts.dir   : 1 (front/right) | -1 (left mirror)
+  //   opts.scale : number (default 1, ≈110 px tall)
+  //   opts.build : 0..1 for 'forming' state
+  function drawBoy(ctx, x, y, t, opts) {
+    opts = opts || {};
+    var state = opts.state || 'idle';
+    var dir   = (opts.dir !== undefined) ? opts.dir : 1;
+    var sc    = opts.scale || 1;
+    var build = (opts.build !== undefined) ? opts.build : 1;
+
+    // 'forming' draws its own compound effect — handle separately
+    if (state === 'forming') {
+      _boyForming(ctx, x, y, t, sc, build);
+      return;
+    }
+
+    // Animation values
+    var bob      = Math.sin(t * 2.0) * 2.5;
+    var walkLean = 0;
+    var legSwing = 0;
+
+    // Guard: feet apart, chin up — achieved via arm angles + body translate
+    var armAngleR = (state === 'guard') ?  0.25 : 0.35;  // right at side
+    var armAngleL = (state === 'guard') ? -1.30 : -0.35; // left raised palm-out
+
+    ovalShadow(ctx, x, y, 22 * sc, 6 * sc);
+
+    ctx.save();
+    ctx.translate(x, y + bob);
+    ctx.scale(dir * sc, sc);
+    ctx.rotate(walkLean);
+
+    _boyFeet(ctx, legSwing);
+    _boyBody(ctx, state, t, armAngleR, armAngleL);
+    _boyHead(ctx, state, t, 1);
+
+    // Guard pose: chin-up tilt — small upward camera shift on head
+    // (already handled by the head y offsets being fixed)
+
+    ctx.restore();
+  }
+
   // ── Public API ────────────────────────────────────────────────────────
   return {
     // Utilities
@@ -1480,6 +1853,7 @@ G.art = (function () {
     // Characters
     drawGanesha:          drawGanesha,
     drawGaneshaOnMushak:  drawGaneshaOnMushak,
+    drawBoy:              drawBoy,
     drawMushak:           drawMushak,
     drawParvati:    drawParvati,
     drawShiva:      drawShiva,

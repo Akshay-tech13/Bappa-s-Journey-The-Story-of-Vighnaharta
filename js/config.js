@@ -44,6 +44,13 @@ G.COL = {
   goldDark:   '#E39A1E',  // crown gradient shadow
   ivoryTusk:  '#F5F0D8',  // tusk ivory
   outline:    '#5A3320',  // warm dark-brown outline (2 px, rounded)
+
+  // ── Boy (Parvati's son, pre-Ganesha) palette ──────────────────────────
+  boySkin:    '#D9A66E',  // sandalwood base skin
+  boyShade:   '#B8834A',  // darker shade (underside)
+  boyHi:      '#EEC48C',  // lighter highlight (forehead, chest centre)
+  boyHair:    '#1A0A00',  // near-black hair topknot
+  boyRibbon:  '#F26B38',  // saffron-orange topknot ribbon
 };
 
 // ── Scoring ────────────────────────────────────────────────────────────────
