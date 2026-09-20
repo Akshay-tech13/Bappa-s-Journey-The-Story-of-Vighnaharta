@@ -100,6 +100,7 @@ var _l1pSpotted  = false;// currently showing smile
 
 // Blessing state
 var _l1blessCooldown = 0;  // seconds remaining on cooldown
+var _l1blessTotal    = 0;  // total blessings used this run (blessing meter)
 var L1_BLESS_CD      = 3;  // cooldown seconds
 
 // Level complete results
@@ -222,9 +223,11 @@ function _l1calcResults(){
   G.run.levelStars['level1']=stars;
 }
 
-// Spawn sparkle particles at (wx,wy) in world coords
+// Spawn sparkle particles at (wx,wy) — capped at 40 total to stay fast on phones
+var L1_MAX_PARTICLES = 40;
 function _l1sparkle(wx,wy){
   for(var i=0;i<8;i++){
+    if(_l1particles.length>=L1_MAX_PARTICLES) break;
     var a=Math.random()*Math.PI*2;
     var spd=40+Math.random()*60;
     _l1particles.push({
@@ -274,6 +277,7 @@ G.scenes['level1'] = {
     _l1particles=[];
     _l1blessCooldown=0;
     _l1nextRect=null;
+    _l1blessTotal=0;   // total blessings used (for blessing meter)
 
     // Reset Ganesha
     _l1gx=L1_START.x; _l1gy=L1_START.y;
@@ -298,6 +302,7 @@ G.scenes['level1'] = {
     _l1pAngle=0;
 
     _l1attachClick();
+    if (G.audio.startDhol) G.audio.startDhol();
   },
 
   update: function(dt){
@@ -345,7 +350,9 @@ G.scenes['level1'] = {
     // ── Blessing action ───────────────────────────────────────────────────
     if(inp.actionPressed && _l1blessCooldown<=0){
       _l1blessCooldown=L1_BLESS_CD;
+      _l1blessTotal++;
       G.audio.blessingShimmer();
+      if (G.shake) G.shake(5);  // small camera shake
       // Remove the nearest removable obstacle within reach
       var best=-1, bestD=G.BLESSING_REACH*G.BLESSING_REACH;
       for(var i=0;i<_l1Obs.length;i++){
@@ -548,6 +555,7 @@ G.scenes['level1'] = {
 
   destroy: function(){
     _l1detachClick();
+    if (G.audio.stopDhol) G.audio.stopDhol();
   },
 };
 
@@ -654,6 +662,22 @@ function _l1drawHUD(ctx){
   // Time (small, top centre-right)
   var secs=Math.floor(_l1t);
   G.art.centeredText(ctx,secs+'s',G.W-100,16,14,'rgba(255,255,255,0.4)');
+
+  // ── Blessing meter: small dot-row below the modak counter ────────────
+  // Shows how many blessings have been used (max shown = 3 = one per stool)
+  var maxDots=3;
+  for(var bd=0;bd<maxDots;bd++){
+    ctx.beginPath();
+    ctx.arc(24+bd*22,72,7,0,Math.PI*2);
+    if(bd<_l1blessTotal){
+      ctx.fillStyle=G.COL.gold;
+    } else {
+      ctx.fillStyle='rgba(255,215,0,0.2)';
+    }
+    ctx.fill();
+    ctx.strokeStyle='rgba(255,215,0,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+  }
+  G.art.centeredText(ctx,'✨',95,72,12,'rgba(255,215,0,0.55)');
 }
 
 // Level complete overlay

@@ -93,6 +93,15 @@
     },
   };
 
+  // ── Camera shake ──────────────────────────────────────────────────────
+  // G.shake(magnitude) — scenes call this; the draw loop applies the offset.
+  var _shakeMag   = 0;   // current shake magnitude (px)
+  var _shakeDecay = 12;  // how fast shake decays per second
+
+  G.shake = function (mag) {
+    _shakeMag = Math.max(_shakeMag, mag);  // don't reduce an existing shake
+  };
+
   // ── Game loop ─────────────────────────────────────────────────────────
   var lastTime = 0;
   var MAX_DT   = 0.05;  // cap delta time at 50 ms to avoid spiral-of-death
@@ -102,6 +111,9 @@
 
     var dt = Math.min((timestamp - lastTime) / 1000, MAX_DT);
     lastTime = timestamp;
+
+    // Decay shake
+    _shakeMag = Math.max(0, _shakeMag - _shakeDecay * dt);
 
     // Update input first
     G.input.update();
@@ -143,6 +155,12 @@
 
     // ── Draw current scene ────────────────────────────────────────────
     ctx.save();
+    // Apply camera shake as a small random translate
+    if (_shakeMag > 0.5) {
+      var sx = (Math.random() * 2 - 1) * _shakeMag;
+      var sy = (Math.random() * 2 - 1) * _shakeMag;
+      ctx.translate(sx, sy);
+    }
     if (currentScene && currentScene.draw) {
       currentScene.draw(ctx);
     } else {

@@ -191,6 +191,7 @@ G.scenes['level2'] = {
     _l2orbitAngle = 0;  _l2laps = 0;  _l2lastLap = -1;
     _l2nextRect = null;
     _l2attachClick();
+    if (G.audio.startDhol) G.audio.startDhol();
     // Spawn first wave immediately
     _l2spawnWave();
   },
@@ -338,7 +339,10 @@ G.scenes['level2'] = {
     }
   },
 
-  destroy: function () { _l2detachClick(); },
+  destroy: function () {
+    _l2detachClick();
+    if (G.audio.stopDhol) G.audio.stopDhol();
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

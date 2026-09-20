@@ -8,7 +8,18 @@
 G.audio = (function () {
 
   var ctx = null;      // AudioContext — created on first gesture
-  var muted = false;
+
+  // Load persisted mute preference (falls back to false if storage blocked)
+  var muted = (function () {
+    try { return localStorage.getItem('bappa_muted') === '1'; }
+    catch (e) { return false; }
+  })();
+
+  // Sync the mute button icon on first load
+  window.addEventListener('load', function () {
+    var btn = document.getElementById('muteBtn');
+    if (btn) btn.textContent = muted ? '🔇' : '🔊';
+  });
 
   // ── Unlock / lazy-init ────────────────────────────────────────────────
   function unlock() {
@@ -164,10 +175,13 @@ G.audio = (function () {
     dholRunning = false;
   }
 
-  // ── Mute toggle ───────────────────────────────────────────────────────
+  // ── Mute toggle (persists preference) ────────────────────────────────
   function toggleMute() {
     muted = !muted;
     document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
+    try { localStorage.setItem('bappa_muted', muted ? '1' : '0'); } catch (e) {}
+    // Stop dhol immediately when muting
+    if (muted && dholRunning) stopDhol();
   }
 
   function isMuted() { return muted; }

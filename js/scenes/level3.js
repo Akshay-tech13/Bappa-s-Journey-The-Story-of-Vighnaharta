@@ -147,6 +147,7 @@ G.scenes['level3'] = {
       this.blessCd   = L3_BLESS_CD;
       this.blessAnim = 0.6;  // seconds of ring anim
       G.audio.blessingShimmer();
+      if (G.shake) G.shake(4);
       // Light diyas in blessing radius
       for (i = 0; i < this.diyas.length; i++) {
         var d = this.diyas[i];
