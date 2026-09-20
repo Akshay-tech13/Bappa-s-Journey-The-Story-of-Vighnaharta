@@ -184,8 +184,8 @@
   var states  = ['idle', 'walk', 'celebrate'];
   var stateIdx= 0;
 
-  var PAGE    = 0;           // gallery page (0 = characters, 1 = props, 2 = Parvati)
-  var PAGES   = 3;
+  var PAGE    = 0;           // gallery page (0 = characters, 1 = props, 2 = Parvati, 3 = Shiva)
+  var PAGES   = 4;
 
   // Button hit-areas (in logical px)
   var btnPrev = { x: 60,       y: G.H - 50, w: 100, h: 44 };
@@ -268,7 +268,7 @@
     var chars = [
       { lbl: 'Mushak',      fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:1.2}); } },
       { lbl: 'Parvati idle',fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:0.65,pose:'idle'}); } },
-      { lbl: 'Lord Shiva',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:1.0}); } },
+      { lbl: 'Lord Shiva',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:0.6,pose:'idle'}); } },
       { lbl: 'Kartikeya',   fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:1.0}); } },
       { lbl: 'Devotee',     fn: function(c,x,y){ G.art.drawDevotee(c,x,y,t,{scale:1.0,handsUp:true}); } },
     ];
@@ -344,6 +344,38 @@
     });
   }
 
+  // ── Page 3: Lord Shiva — all poses and directions ─────────────────────
+  function drawShivaPage(ctx) {
+    var sc = 0.58;  // fits 176px character into the 150px cell
+    // Row 1: front poses (idle, bless, back view, left-facing)
+    var row1Poses = [
+      { lbl: 'idle',    fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:sc, pose:'idle'}); } },
+      { lbl: 'bless',   fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:sc, pose:'bless'}); } },
+      { lbl: 'seated',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:sc*1.1, pose:'seated'}); } },
+      { lbl: 'back',    fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:sc, dir:'up'}); } },
+      { lbl: 'left ←',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:sc, dir:'left'}); } },
+      { lbl: 'right →', fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:sc, dir:'right'}); } },
+    ];
+    var sp1   = G.W / (row1Poses.length + 1);
+    var row1y = 280;
+    G.art.centeredText(ctx, 'Lord Shiva — all poses', G.W/2, 90, 16, G.COL.cream);
+    row1Poses.forEach(function(p, i) {
+      cell(ctx, p.lbl, p.fn, sp1 * (i + 1), row1y);
+    });
+
+    // Row 2: scale checks (small 0.4, large 1.0 equivalent)
+    var row2Poses = [
+      { lbl: 'scale 0.4',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:0.4, pose:'idle'}); } },
+      { lbl: 'scale 1.0',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:0.4*2.5, pose:'bless'}); } },
+    ];
+    var sp2   = G.W / (row2Poses.length + 1);
+    var row2y = 580;
+    G.art.centeredText(ctx, 'Scale checks (no clipping)', G.W/2, 450, 16, G.COL.cream);
+    row2Poses.forEach(function(p, i) {
+      cell(ctx, p.lbl, p.fn, sp2 * (i + 1), row2y);
+    });
+  }
+
   // ── Scene ─────────────────────────────────────────────────────────────
   G.scenes['artGallery'] = {
     init: function () {
@@ -366,13 +398,14 @@
       G.art.clearBg(ctx, '#2E1A00');
 
       // Title bar
-      var pgLabel = PAGE === 0 ? 'Characters' : (PAGE === 1 ? 'Props' : 'Maa Parvati — all poses');
-      G.art.centeredText(ctx, 'ART GALLERY — ' + pgLabel, G.W/2, 36, 26, G.COL.marigold);
+      var pgLabels = ['Characters', 'Props', 'Maa Parvati — all poses', 'Lord Shiva — all poses'];
+      G.art.centeredText(ctx, 'ART GALLERY — ' + pgLabels[PAGE], G.W/2, 36, 26, G.COL.marigold);
       G.art.centeredText(ctx, 'Page ' + (PAGE + 1) + ' / ' + PAGES, G.W/2, 64, 16, G.COL.gold);
 
       if      (PAGE === 0) drawCharPage(ctx);
       else if (PAGE === 1) drawPropPage(ctx);
-      else                 drawParvatiPage(ctx);
+      else if (PAGE === 2) drawParvatiPage(ctx);
+      else                 drawShivaPage(ctx);
 
       // ── Bottom buttons ─────────────────────────────────────────────
       function btn(b, label) {

@@ -61,6 +61,19 @@ G.COL = {
   parHair:    '#2A1200',  // dark-brown hair / braid
   lotPink:    '#F49AC2',  // lotus petal pink
   lotGreen:   '#4E8B3F',  // lotus stem green
+
+  // ── Lord Shiva palette ────────────────────────────────────────────────
+  shvSkin:      '#A9C7D6',  // light blue-grey skin
+  shvSkinSh:    '#7FA3B8',  // darker skin shade
+  shvSkinHi:    '#CDE4EE',  // soft skin highlight
+  shvJata:      '#2A1800',  // dark brown-black matted jata hair
+  shvMoon:      '#F5F1D0',  // cream crescent moon
+  shvThroat:    '#6090C8',  // Neelakantha blue throat
+  shvThirdEye:  '#CC4400',  // red-orange third eye mark
+  shvCobra:     '#3E7040',  // calm green cobra body
+  shvCobraHi:   '#70B060',  // lighter cobra highlight
+  shvDhoti:     '#E87820',  // saffron-orange wrap
+  shvRudra:     '#5C3010',  // dark rudraksha brown
 };
 
 // ── Scoring ────────────────────────────────────────────────────────────────

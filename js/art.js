@@ -1139,85 +1139,462 @@ G.art = (function () {
     ctx.restore();
   }
 
-  // ╔══════════════════════════════════════════════════════════════╗
-  // ║  LORD SHIVA (seated, serene)                                ║
-  // ╚══════════════════════════════════════════════════════════════╝
-  function drawShiva(ctx, x, y, t, opts) {
-    opts = opts || {};
-    var sc  = opts.scale || 1;
-    var bob = Math.sin(t * 1.5) * 1.5;
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  LORD SHIVA — redrawn calm dignified style                      ║
+  // ║  Signature: drawShiva(ctx, x, y, t, opts)  (UNCHANGED)          ║
+  // ║  opts = { scale, dir, pose }                                     ║
+  // ║    scale : number (default 1).  At scale 1 ≈ 176 px tall.       ║
+  // ║    dir   : 1|-1 OR 'right'|'left'|'up' (back view)              ║
+  // ║    pose  : 'idle'|'stand'|'seated'|'bless'                      ║
+  // ║  (x,y) = centre-bottom between feet.                            ║
+  // ╚══════════════════════════════════════════════════════════════════╝
 
-    ovalShadow(ctx, x, y, 26 * sc, 7 * sc);
-    ctx.save();
-    ctx.translate(x, y + bob);
-    ctx.scale(sc, sc);
+  // ── helper: warm brown outline stroke on current path ────────────────
+  function _shvOutline(ctx, w) {
+    ctx.strokeStyle = C.outline;
+    ctx.lineWidth   = w || 1.8;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+  }
 
-    // Seated cross-legged base (tiger skin — ochre)
+  // ── helper: tall matted jata top-knot with crescent moon ─────────────
+  // baseY = centre-of-head Y. sway = small horizontal offset from breathing.
+  function _shvJata(ctx, baseY, sway) {
+    // Outer jata mound — dark brownish-black matted coil
     ctx.beginPath();
-    ctx.ellipse(0, -18, 24, 18, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#C8A050';
+    ctx.moveTo(-14, baseY + 12);
+    ctx.bezierCurveTo(-20 + sway * 0.5, baseY - 8,  -16 + sway, baseY - 34, -4 + sway, baseY - 52);
+    ctx.bezierCurveTo( 0  + sway, baseY - 58,  4 + sway, baseY - 58,  4 + sway, baseY - 52);
+    ctx.bezierCurveTo( 16 + sway, baseY - 34,  20 - sway * 0.5, baseY - 8, 14, baseY + 12);
+    ctx.fillStyle = C.shvJata;
     ctx.fill();
-    // Tiger stripes
-    ctx.strokeStyle = 'rgba(80,40,0,0.3)';
-    ctx.lineWidth = 1.5;
-    for (var s = -14; s <= 14; s += 7) {
+    _shvOutline(ctx, 1.4);
+
+    // Coil texture — horizontal curved lines across jata
+    ctx.strokeStyle = 'rgba(30,10,0,0.25)'; ctx.lineWidth = 1.2;
+    for (var ji = 0; ji < 4; ji++) {
+      var jy = baseY - 12 - ji * 10;
       ctx.beginPath();
-      ctx.moveTo(s - 4, -8);
-      ctx.lineTo(s + 4, -28);
+      ctx.moveTo(-12 + sway * 0.3, jy);
+      ctx.quadraticCurveTo(sway * 0.5, jy - 4, 12 - sway * 0.3, jy);
       ctx.stroke();
     }
 
-    // Lower body / dhoti (white)
-    ellipse(ctx, 0, -34, 16, 16, C.white);
-
-    // Torso
-    ellipse(ctx, 0, -54, 14, 16, '#D0C8C0');
-
-    // Vibhuti lines (3 horizontal white stripes on forehead)
-    // (drawn later on face)
-
-    // Arms (meditating — hands in lap / mudra)
-    ellipse(ctx, -16, -50, 8, 5, '#D0C8C0');
-    ellipse(ctx,  16, -50, 8, 5, '#D0C8C0');
-    ellipse(ctx,   0, -42, 14, 6, '#D0C8C0'); // hands in lap
-
-    // Neck
-    ellipse(ctx, 0, -68, 7, 5, '#D0C8C0');
-
-    // Blue throat (neelakantha)
-    ellipse(ctx, 0, -72, 7, 3, '#6090C8');
-
-    // Head
-    ellipse(ctx, 0, -82, 15, 17, '#D0C8C0');
-    outline(ctx, 1);
-
-    // Jata (matted hair — tall, indigo)
+    // Crescent moon tucked at the base of the jata (cream, thin arc)
+    var moonY = baseY - 16;
     ctx.beginPath();
-    ctx.moveTo(-12, -90);
-    ctx.bezierCurveTo(-16, -106, -8, -118, 0, -120);
-    ctx.bezierCurveTo(8, -118, 16, -106, 12, -90);
-    ctx.fillStyle = '#3A2870';
-    ctx.fill();
-    // Crescent moon in jata
+    ctx.arc(-2 + sway * 0.4, moonY, 8, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.strokeStyle = C.shvMoon; ctx.lineWidth = 3; ctx.stroke();
+    // Inner crescent darker arc to make it look like a crescent shape
     ctx.beginPath();
-    ctx.arc(0, -112, 7, 0.3, Math.PI - 0.3);
-    ctx.strokeStyle = C.cream;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
+    ctx.arc(1 + sway * 0.4, moonY - 1, 6, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.strokeStyle = C.shvJata; ctx.lineWidth = 2.5; ctx.stroke();
 
-    // Eyes (slightly closed, meditative)
-    ctx.fillStyle = '#2A1A0A';
-    ctx.beginPath(); ctx.ellipse(-5, -82, 4, 2, -0.1, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(5,  -82, 4, 2, 0.1,  0, Math.PI*2); ctx.fill();
+    // Small Ganga river trickle — a thin blue wavy line down the right side of jata
+    ctx.beginPath();
+    ctx.moveTo(10 + sway * 0.6, baseY - 48);
+    ctx.quadraticCurveTo(14 + sway, baseY - 28, 12, baseY + 8);
+    ctx.strokeStyle = '#88C8E8'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
 
-    // Vibhuti (3 white stripes) on forehead
-    ctx.fillStyle = C.white;
-    for (var v = 0; v < 3; v++) {
-      ctx.fillRect(-7, -92 + v * 3, 14, 1.5);
+  // ── helper: calm green cobra draped over shoulders ────────────────────
+  // Drawn above torso so it sits at neck level. cx=0 = torso centre.
+  function _shvCobra(ctx, torsoY) {
+    // Body loop: S-curve across the left shoulder
+    ctx.beginPath();
+    ctx.moveTo(16, torsoY - 4);
+    ctx.bezierCurveTo(20, torsoY - 18, 8, torsoY - 28, 0, torsoY - 20);
+    ctx.bezierCurveTo(-10, torsoY - 12, -18, torsoY - 22, -20, torsoY - 10);
+    ctx.strokeStyle = C.shvCobra; ctx.lineWidth = 5; ctx.stroke();
+    // Lighter highlight stripe
+    ctx.beginPath();
+    ctx.moveTo(15, torsoY - 5);
+    ctx.bezierCurveTo(19, torsoY - 18, 8, torsoY - 26, 0, torsoY - 20);
+    ctx.strokeStyle = C.shvCobraHi; ctx.lineWidth = 2; ctx.stroke();
+
+    // Hood (flattened fan shape) resting on the left shoulder
+    ctx.save();
+    ctx.translate(-20, torsoY - 10);
+    ctx.rotate(0.6);
+    ctx.beginPath();
+    ctx.ellipse(0, -8, 7, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvCobra; ctx.fill();
+    _shvOutline(ctx, 1);
+    // Hood highlight
+    ctx.beginPath();
+    ctx.ellipse(-1, -9, 3, 6, -0.1, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvCobraHi; ctx.globalAlpha = 0.55; ctx.fill();
+    ctx.globalAlpha = 1;
+    // Two small friendly eyes on hood
+    circle(ctx, -3, -14, 1.5, '#1A0A00');
+    circle(ctx,  3, -14, 1.5, '#1A0A00');
+    // Tongue (tiny forked — just two short lines)
+    ctx.beginPath();
+    ctx.moveTo(0, -18); ctx.lineTo(-2, -21);
+    ctx.moveTo(0, -18); ctx.lineTo( 2, -21);
+    ctx.strokeStyle = '#CC3030'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── helper: dhoti lower body (tiger-stripe saffron wrap) ──────────────
+  // pose 'seated' draws flat cross-legged base instead.
+  function _shvDhoti(ctx, pose) {
+    var isSeated = (pose === 'seated');
+    if (isSeated) {
+      // Flat meditation base — wide oval in ochre/saffron
+      ctx.beginPath();
+      ctx.ellipse(0, -14, 34, 16, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.shvDhoti; ctx.fill();
+      _shvOutline(ctx, 1.5);
+      // Tiger stripes on base
+      ctx.strokeStyle = 'rgba(80,30,0,0.22)'; ctx.lineWidth = 1.5;
+      for (var ts = -20; ts <= 20; ts += 10) {
+        ctx.beginPath();
+        ctx.moveTo(ts - 6, -6);
+        ctx.quadraticCurveTo(ts, -18, ts + 6, -6);
+        ctx.stroke();
+      }
+      // Legs / feet poking out sides
+      ellipse(ctx, -30, -10, 10, 6, C.shvSkin);
+      ellipse(ctx,  30, -10, 10, 6, C.shvSkin);
+      ellipse(ctx, -38, -8,  6,  4, C.shvSkin);
+      ellipse(ctx,  38, -8,  6,  4, C.shvSkin);
+    } else {
+      // Standing wrap — saffron bell from waist to ankle
+      ctx.beginPath();
+      ctx.moveTo(-20, -18);
+      ctx.bezierCurveTo(-24, -30, -18, -76, -12, -86);
+      ctx.lineTo(12, -86);
+      ctx.bezierCurveTo(18, -76, 24, -30, 20, -18);
+      ctx.quadraticCurveTo(0, -10, -20, -18);
+      ctx.closePath();
+      ctx.fillStyle = C.shvDhoti; ctx.fill();
+      _shvOutline(ctx, 1.5);
+      // Gold hem
+      ctx.beginPath();
+      ctx.moveTo(-20, -18);
+      ctx.quadraticCurveTo(0, -10, 20, -18);
+      ctx.strokeStyle = C.goldDark; ctx.lineWidth = 3; ctx.stroke();
+      // Tiger-stripe pattern: short curved marks
+      ctx.strokeStyle = 'rgba(80,30,0,0.22)'; ctx.lineWidth = 1.5;
+      for (var tv = -8; tv <= 8; tv += 8) {
+        ctx.beginPath();
+        ctx.moveTo(tv - 4, -30);
+        ctx.quadraticCurveTo(tv, -48, tv + 4, -30);
+        ctx.stroke();
+      }
+      // Feet peeking below
+      ellipse(ctx, -10, -4, 8, 5, C.shvSkin);
+      ellipse(ctx,  10, -4, 8, 5, C.shvSkin);
+      ellipse(ctx, -12, -3, 3, 2, C.shvSkinHi);
+      ellipse(ctx,  12, -3, 3, 2, C.shvSkinHi);
+    }
+  }
+
+  // ── helper: torso + chest ash-lines + rudraksha ────────────────────────
+  function _shvTorso(ctx, pose) {
+    var isSeated = (pose === 'seated');
+    var torsoY   = isSeated ? -46 : -104; // chest centre Y
+
+    // Torso body
+    ctx.beginPath();
+    ctx.ellipse(0, torsoY, 16, 18, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvSkin; ctx.fill();
+    _shvOutline(ctx, 1.5);
+    // Shade on right side
+    ctx.beginPath();
+    ctx.ellipse(6, torsoY + 2, 7, 13, 0.25, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvSkinSh; ctx.globalAlpha = 0.28; ctx.fill();
+    ctx.globalAlpha = 1;
+    // Highlight on chest centre
+    ctx.beginPath();
+    ctx.ellipse(-2, torsoY - 6, 5, 8, -0.1, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvSkinHi; ctx.globalAlpha = 0.35; ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Three horizontal ash (vibhuti) lines across chest
+    ctx.strokeStyle = 'rgba(240,240,230,0.80)'; ctx.lineWidth = 2;
+    for (var al = 0; al < 3; al++) {
+      var lineY = torsoY - 4 + al * 6;
+      ctx.beginPath();
+      ctx.moveTo(-12, lineY);
+      ctx.lineTo( 12, lineY);
+      ctx.stroke();
     }
 
-    // Third eye (dot)
-    circle(ctx, 0, -88, 2.5, C.maroon);
+    // Rudraksha necklace (small brown bead arc)
+    ctx.beginPath();
+    ctx.arc(0, torsoY - 14, 13, Math.PI * 0.12, Math.PI * 0.88);
+    ctx.strokeStyle = C.shvRudra; ctx.lineWidth = 4; ctx.stroke();
+    // Bead dots on necklace
+    ctx.fillStyle = C.shvRudra;
+    for (var rd = 0; rd <= 6; rd++) {
+      var rAngle = Math.PI * 0.12 + rd * (Math.PI * 0.76 / 6);
+      var rx = Math.cos(rAngle) * 13;
+      var ry = torsoY - 14 + Math.sin(rAngle) * 13;
+      ctx.beginPath(); ctx.arc(rx, ry, 2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Rudraksha armbands (drawn here since they're at torso level)
+    var armY = torsoY + 2;
+    for (var ab = -1; ab <= 1; ab += 2) {
+      ctx.beginPath();
+      ctx.arc(ab * 18, armY, 5, 0, Math.PI * 2);
+      ctx.strokeStyle = C.shvRudra; ctx.lineWidth = 3; ctx.stroke();
+    }
+  }
+
+  // ── helper: neck + Neelakantha blue-throat + head + face ─────────────
+  function _shvFace(ctx, t, pose, headTurn, isBack) {
+    var isSeated = (pose === 'seated');
+    var headY    = isSeated ? -72 : -130; // centre-of-head Y
+    var jataSway = Math.sin(t * 0.8) * 1.2; // very subtle jata sway
+
+    if (isBack) {
+      // ── Back view: just neck + head + jata ───────────────────────
+      ellipse(ctx, 0, headY + 24, 8, 9, C.shvSkin);
+      ellipse(ctx, 0, headY, 18, 21, C.shvSkin);
+      _shvJata(ctx, headY, jataSway);
+      return;
+    }
+
+    // ── Front/side view ───────────────────────────────────────────
+    // Neelakantha blue throat
+    ctx.beginPath();
+    ctx.ellipse(headTurn * 3, headY + 28, 8, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvThroat; ctx.fill();
+    _shvOutline(ctx, 1.2);
+
+    // Neck
+    ellipse(ctx, headTurn * 2, headY + 20, 8, 9, C.shvSkin);
+    _shvOutline(ctx, 1.2);
+
+    // Jata (drawn behind head)
+    _shvJata(ctx, headY, jataSway + headTurn * 2);
+
+    // Head base
+    ellipse(ctx, headTurn * 3, headY, 18, 21, C.shvSkin);
+    _shvOutline(ctx, 1.8);
+    // Forehead highlight
+    ctx.beginPath();
+    ctx.ellipse(headTurn * 2 - 1, headY - 8, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvSkinHi; ctx.globalAlpha = 0.40; ctx.fill();
+    ctx.globalAlpha = 1;
+    // Chin shade
+    ctx.beginPath();
+    ctx.ellipse(headTurn * 3 + 2, headY + 14, 8, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvSkinSh; ctx.globalAlpha = 0.28; ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Three horizontal tripundra ash lines on forehead
+    var ex0 = headTurn * 3;
+    ctx.strokeStyle = 'rgba(240,240,230,0.88)'; ctx.lineWidth = 1.8;
+    for (var ti = 0; ti < 3; ti++) {
+      ctx.beginPath();
+      ctx.moveTo(ex0 - 8, headY - 4 + ti * 4);
+      ctx.lineTo(ex0 + 8, headY - 4 + ti * 4);
+      ctx.stroke();
+    }
+
+    // Third eye — a thin vertical red-orange teardrop mark
+    ctx.beginPath();
+    ctx.moveTo(ex0, headY - 14);
+    ctx.bezierCurveTo(ex0 + 2, headY - 20, ex0 + 2, headY - 26, ex0, headY - 28);
+    ctx.bezierCurveTo(ex0 - 2, headY - 26, ex0 - 2, headY - 20, ex0, headY - 14);
+    ctx.fillStyle = C.shvThirdEye; ctx.fill();
+    _shvOutline(ctx, 0.8);
+
+    // Half-closed eyes — meditative, kind
+    // Blink every ~5 s (slower than Parvati — deeper meditation)
+    var blink = (t % 5) > 4.85;
+    var eyeH  = blink ? 0.3 : 2.2;
+    for (var ev = -1; ev <= 1; ev += 2) {
+      var eyeX = ex0 + ev * 6;
+      var eyeY = headY + 4;
+      // White
+      ctx.beginPath();
+      ctx.ellipse(eyeX, eyeY, 5, eyeH, ev * 0.1, 0, Math.PI * 2);
+      ctx.fillStyle = C.white; ctx.fill();
+      // Iris (very dark, almost black — introspective)
+      ctx.beginPath();
+      ctx.ellipse(eyeX, eyeY, 3, Math.max(0.2, eyeH - 0.6), 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#180800'; ctx.fill();
+      // Heavy lower lid (half-closed look)
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, 5, 0, Math.PI);
+      ctx.strokeStyle = C.shvSkinSh; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+
+    // Gentle smile (very subtle, serene)
+    ctx.beginPath();
+    ctx.moveTo(ex0 - 6, headY + 11);
+    ctx.quadraticCurveTo(ex0, headY + 14, ex0 + 6, headY + 11);
+    ctx.strokeStyle = '#3A1800'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Earrings: simple rudraksha bead + small ring on each side
+    for (var es = -1; es <= 1; es += 2) {
+      var earX = ex0 + es * 17;
+      ellipse(ctx, earX, headY + 4, 5, 6, C.shvSkin);
+      _shvOutline(ctx, 0.9);
+      circle(ctx, earX, headY + 8, 3.5, C.shvRudra);
+      _shvOutline(ctx, 0.8);
+    }
+  }
+
+  // ── helper: arms + hands (pose drives angles) ─────────────────────────
+  function _shvArms(ctx, pose, t, isSeated) {
+    var torsoY    = isSeated ? -46 : -104;
+    var breathe   = Math.sin(t * 0.9) * 0.06; // very slow breathing swing
+    var blessRise = (pose === 'bless') ? -0.7 : 0;
+
+    // LEFT arm — rests down or in lap
+    ctx.save();
+    ctx.translate(-16, torsoY - 2);
+    ctx.rotate(-0.18 + breathe);
+    roundRect(ctx, -5, -2, 10, 22, 5, C.shvSkin);
+    _shvOutline(ctx, 1.2);
+    ctx.beginPath();
+    ctx.ellipse(3, 10, 3, 8, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvSkinSh; ctx.globalAlpha = 0.25; ctx.fill();
+    ctx.globalAlpha = 1;
+    // Rudraksha armband
+    ctx.beginPath();
+    ctx.arc(0, 14, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = C.shvRudra; ctx.lineWidth = 2.5; ctx.stroke();
+    // Forearm
+    roundRect(ctx, -4, 18, 8, 18, 4, C.shvSkin);
+    _shvOutline(ctx, 1);
+    // Hand (open palm resting)
+    ellipse(ctx, 0, 37, 5, 4, C.shvSkin);
+    _shvOutline(ctx, 1);
+    ctx.restore();
+
+    // RIGHT arm — raised for bless, otherwise resting
+    ctx.save();
+    ctx.translate(16, torsoY - 2);
+    ctx.rotate(0.18 - breathe + blessRise);
+    roundRect(ctx, -5, -2, 10, 22, 5, C.shvSkin);
+    _shvOutline(ctx, 1.2);
+    ctx.beginPath();
+    ctx.ellipse(-3, 10, 3, 8, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.shvSkinSh; ctx.globalAlpha = 0.25; ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(0, 14, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = C.shvRudra; ctx.lineWidth = 2.5; ctx.stroke();
+    roundRect(ctx, -4, 18, 8, 18, 4, C.shvSkin);
+    _shvOutline(ctx, 1);
+    ellipse(ctx, 0, 37, 5, 4, C.shvSkin);
+    _shvOutline(ctx, 1);
+    // Bless: open palm with soft golden glow
+    if (pose === 'bless') {
+      ctx.beginPath();
+      ctx.arc(0, 37, 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,216,80,0.40)'; ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── helper: tall golden trishul with damaru, beside Shiva's left ──────
+  // Placed at x=+22 in local space (to his right in world = left on canvas before flip).
+  function _shvTrishul(ctx, isSeated) {
+    var staffBot = isSeated ? -4  : -4;   // bottom of staff (near feet)
+    var staffTop = isSeated ? -110 : -184; // top of staff
+
+    ctx.save();
+    ctx.translate(24, 0);  // offset to Shiva's right side
+
+    // Staff — gold rod
+    ctx.beginPath();
+    ctx.moveTo(0, staffBot);
+    ctx.lineTo(0, staffTop);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 4; ctx.stroke();
+    // Highlight stripe
+    ctx.beginPath();
+    ctx.moveTo(-1, staffBot);
+    ctx.lineTo(-1, staffTop);
+    ctx.strokeStyle = C.goldLight; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Trident head at the top — three prongs
+    var prongsY = staffTop;
+    // Centre prong (tallest)
+    ctx.beginPath();
+    ctx.moveTo(0, prongsY);
+    ctx.lineTo(-3, prongsY - 24);
+    ctx.lineTo(3, prongsY - 24);
+    ctx.closePath();
+    ctx.fillStyle = C.goldDark; ctx.fill();
+    _shvOutline(ctx, 1);
+    // Left prong
+    ctx.save(); ctx.translate(-7, prongsY + 2); ctx.rotate(-0.22);
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(-2, -16); ctx.lineTo(2, -16); ctx.closePath();
+    ctx.fillStyle = C.goldDark; ctx.fill(); _shvOutline(ctx, 0.8);
+    ctx.restore();
+    // Right prong
+    ctx.save(); ctx.translate(7, prongsY + 2); ctx.rotate(0.22);
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(-2, -16); ctx.lineTo(2, -16); ctx.closePath();
+    ctx.fillStyle = C.goldDark; ctx.fill(); _shvOutline(ctx, 0.8);
+    ctx.restore();
+
+    // Damaru drum tied at mid-staff
+    var dY = staffBot + (staffTop - staffBot) * 0.28;
+    ctx.save();
+    ctx.translate(8, dY);
+    // Two small drum heads (hour-glass shape)
+    ctx.beginPath();
+    ctx.moveTo(0, -8); ctx.lineTo(6, -2); ctx.lineTo(0, 4); ctx.lineTo(-6, -2); ctx.closePath();
+    ctx.fillStyle = C.shvRudra; ctx.fill();
+    _shvOutline(ctx, 1);
+    // Binding thread
+    ctx.beginPath();
+    ctx.moveTo(-6, -2); ctx.lineTo(0, -8); ctx.moveTo(6, -2); ctx.lineTo(0, 4);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // ── Main drawShiva — orchestrates all helpers ─────────────────────────
+  function drawShiva(ctx, x, y, t, opts) {
+    opts = opts || {};
+    var sc     = opts.scale || 1;
+    // Accept numeric dir (legacy: 1 or -1) or string ('right','left','up')
+    var dirRaw = opts.dir !== undefined ? opts.dir : 'right';
+    var isBack = (dirRaw === 'up');
+    var flipX  = (dirRaw === -1 || dirRaw === 'left') ? -1 : 1;
+    var pose   = opts.pose || 'idle';
+    var isSeated = (pose === 'seated');
+
+    // Slow breathing bob — much calmer than other characters
+    var bob    = isSeated ? 0 : Math.sin(t * 0.9) * 1.8;
+
+    var shadowRx = isSeated ? 36 * sc : 28 * sc;
+    ovalShadow(ctx, x, y, shadowRx, 7 * sc);
+
+    ctx.save();
+    ctx.translate(x, y + bob * sc);
+    ctx.scale(flipX * sc, sc);
+
+    if (isBack) {
+      // ── Back view: dhoti → arms → torso → trishul → head (back) ─
+      _shvDhoti(ctx, pose);
+      _shvTorso(ctx, pose);
+      _shvArms(ctx, pose, t, isSeated);
+      _shvTrishul(ctx, isSeated);
+      _shvFace(ctx, t, pose, 0, true);
+    } else {
+      // ── Front view: draw from back to front ──────────────────────
+      // Trishul goes behind Shiva so it appears to be held at his side
+      _shvTrishul(ctx, isSeated);
+      _shvDhoti(ctx, pose);
+      _shvArms(ctx, pose, t, isSeated);
+      _shvCobra(ctx, isSeated ? -46 : -104);
+      _shvTorso(ctx, pose);
+      _shvFace(ctx, t, pose, 0, false);
+    }
 
     ctx.restore();
   }
