@@ -23,15 +23,21 @@ function _loadBest() {
 
 function _saveBest(runScore, runStars) {
   var prev = _loadBest();
-  // Update best score
-  if (runScore > prev.score) {
+
+  // Only update the total score when this run covered ALL levels
+  // (partial replay runs have lower totals and should not overwrite the best)
+  var fullRun = G.LEVEL_ORDER.every(function (lvl) {
+    return G.run.levelScores[lvl] !== undefined;
+  });
+  if (fullRun && runScore > prev.score) {
     G.storage.set(_LS_BEST_SCORE, runScore);
   }
-  // Update best stars per level (keep highest)
+
+  // Always update best stars per level (keep highest — safe for partial runs)
   var newStars = {};
   for (var k in prev.stars) newStars[k] = prev.stars[k];
   for (var lvl in runStars) {
-    newStars[lvl] = Math.max(newStars[lvl] || 0, runStars[lvl]);
+    if (runStars[lvl]) newStars[lvl] = Math.max(newStars[lvl] || 0, runStars[lvl]);
   }
   G.storage.set(_LS_BEST_STARS, newStars);
 }
@@ -57,6 +63,36 @@ G.scenes['end'] = {
     // Load best for display
     this._best = _loadBest();
     this._runTotal = total;
+
+    // ── Build button list once in init (not every draw frame) ─────────
+    var btnY    = G.H - 100;
+    var rxStart = 480;
+    var rxStep  = 200;
+
+    // Play Again
+    var r0 = { x: 220 - 110, y: btnY - 27, w: 220, h: 54 };
+    _endBtns.push({ rect: r0, action: function () {
+      G.resetRun();
+      G.sceneManager.goto('title');
+    }});
+
+    // Replay per level
+    G.LEVEL_ORDER.forEach(function (lvl, idx) {
+      var rx = rxStart + idx * rxStep;
+      var r  = { x: rx - 85, y: btnY - 27, w: 170, h: 54 };
+      _endBtns.push({ rect: r, action: (function (l) {
+        return function () {
+          delete G.run.levelScores[l];
+          delete G.run.levelStars[l];
+          G.run.returnTo = 'end';
+          G.sceneManager.goto(l);
+        };
+      })(lvl)});
+    });
+
+    // Mute button rect (stable position)
+    var rm = { x: G.W - 80 - 65, y: 36 - 22, w: 130, h: 44 };
+    _endBtns.push({ rect: rm, action: function () { G.audio.toggleMute(); }});
 
     // Attach tap / click handler
     _endHandler = function (e) {
@@ -138,47 +174,31 @@ G.scenes['end'] = {
         G.W / 2 - 80, lyStart + idx * 36, 20, G.COL.cream);
     }, this);
 
-    // ── Buttons ───────────────────────────────────────────────────────────
-    _endBtns = [];   // rebuilt every frame so rects stay current
-
+    // ── Buttons (rects built in init; drawn here each frame) ──────────────
     var btnY   = G.H - 100;
 
-    // Play Again — full restart
-    var r0 = G.ui.drawButton(ctx, '▶ Play Again', 220, btnY, 220, 54, {
+    // Play Again
+    G.ui.drawButton(ctx, '▶ Play Again', 220, btnY, 220, 54, {
       color: G.COL.saffron, textColor: G.COL.white, fontSize: 22
     });
-    _endBtns.push({ rect: r0, action: function () {
-      G.resetRun();
-      G.sceneManager.goto('title');
-    }});
 
     // Replay buttons — one per level in LEVEL_ORDER
     var rxStart = 480;
     var rxStep  = 200;
+    var shortLabels = { level1: 'Level 1', level2: 'Level 2', level3: 'Level 3' };
     G.LEVEL_ORDER.forEach(function (lvl, idx) {
-      var short = { level1: 'Level 1', level2: 'Level 2', level3: 'Level 3' }[lvl] || lvl;
+      var short = shortLabels[lvl] || lvl;
       var rx = rxStart + idx * rxStep;
-      var r = G.ui.drawButton(ctx, '↺ ' + short, rx, btnY, 170, 54, {
+      G.ui.drawButton(ctx, '↺ ' + short, rx, btnY, 170, 54, {
         color: G.COL.teal, textColor: G.COL.white, fontSize: 20
       });
-      _endBtns.push({ rect: r, action: (function (l) {
-        return function () {
-          // Clear only this level's score so replay is counted fresh
-          delete G.run.levelScores[l];
-          delete G.run.levelStars[l];
-          // Tell the level to return here when it finishes (not recap)
-          G.run.returnTo = 'end';
-          G.sceneManager.goto(l);
-        };
-      })(lvl)});
     });
 
-    // Mute toggle
+    // Mute toggle — label refreshes each frame (mute state can change)
     var muteLabel = G.audio.isMuted() ? '🔇 Unmute' : '🔊 Mute';
-    var rm = G.ui.drawButton(ctx, muteLabel, G.W - 80, 36, 130, 44, {
+    G.ui.drawButton(ctx, muteLabel, G.W - 80, 36, 130, 44, {
       color: 'rgba(0,0,0,0.5)', textColor: G.COL.cream, fontSize: 18, radius: 10
     });
-    _endBtns.push({ rect: rm, action: function () { G.audio.toggleMute(); }});
 
     // ── Bottom note ───────────────────────────────────────────────────────
     G.art.centeredText(ctx,

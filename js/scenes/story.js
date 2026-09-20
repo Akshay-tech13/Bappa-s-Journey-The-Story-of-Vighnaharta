@@ -39,14 +39,14 @@ var _STORY_SLIDES = [
   },
 ];
 
-// ── Advance one slide, or go to level1 ────────────────────────────────────
+// ── Advance one slide, or go to the first level in LEVEL_ORDER ───────────
 function _storyAdvance() {
   if (_storySlide < _STORY_SLIDES.length - 1) {
     _storySlide++;
     _storySlideT = 0;
     _storyTextA  = 0;
   } else {
-    G.sceneManager.goto('level1');
+    G.sceneManager.goto(G.LEVEL_ORDER[0] || 'level1');
   }
 }
 
@@ -71,7 +71,7 @@ G.scenes['story'] = {
       if (_storySkipRect &&
           p.x >= _storySkipRect.x && p.x <= _storySkipRect.x + _storySkipRect.w &&
           p.y >= _storySkipRect.y && p.y <= _storySkipRect.y + _storySkipRect.h) {
-        G.sceneManager.goto('level1');
+        G.sceneManager.goto(G.LEVEL_ORDER[0] || 'level1');
         return;
       }
       _storyAdvance();
