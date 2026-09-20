@@ -51,6 +51,16 @@ G.COL = {
   boyHi:      '#EEC48C',  // lighter highlight (forehead, chest centre)
   boyHair:    '#1A0A00',  // near-black hair topknot
   boyRibbon:  '#F26B38',  // saffron-orange topknot ribbon
+
+  // ── Maa Parvati palette ────────────────────────────────────────────────
+  parSkin:    '#F0C29A',  // warm medium skin base
+  parShade:   '#D8A07A',  // skin shade (chin, neck, underarm)
+  parHi:      '#FDE8C8',  // forehead / highlight
+  parSaree:   '#F28C28',  // saffron-orange saree
+  parBlouse:  '#FFF1D6',  // cream-yellow blouse
+  parHair:    '#2A1200',  // dark-brown hair / braid
+  lotPink:    '#F49AC2',  // lotus petal pink
+  lotGreen:   '#4E8B3F',  // lotus stem green
 };
 
 // ── Scoring ────────────────────────────────────────────────────────────────

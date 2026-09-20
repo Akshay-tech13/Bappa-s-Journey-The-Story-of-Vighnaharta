@@ -725,83 +725,416 @@ G.art = (function () {
     ctx.restore();
   }
 
-  // ╔══════════════════════════════════════════════════════════════╗
-  // ║  MAA PARVATI                                                ║
-  // ╚══════════════════════════════════════════════════════════════╝
-  function drawParvati(ctx, x, y, t, opts) {
-    opts = opts || {};
-    var sc  = opts.scale || 1;
-    var dir = opts.dir   || 1;
-    var bob = Math.sin(t * 1.8) * 2;
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║  MAA PARVATI — redrawn graceful motherly style                  ║
+  // ║  Signature: drawParvati(ctx, x, y, t, opts)  (UNCHANGED)        ║
+  // ║  opts = { scale, dir, pose }                                     ║
+  // ║    scale : number (default 1).  At scale 1 ≈ 165 px tall.       ║
+  // ║    dir   : 1|-1 OR 'right'|'left'|'up' (back view)              ║
+  // ║    pose  : 'idle'|'walk'|'look'|'smile'|'seated'|'bless'        ║
+  // ║  (x,y) = centre-bottom between feet.                            ║
+  // ╚══════════════════════════════════════════════════════════════════╝
 
-    ovalShadow(ctx, x, y, 22 * sc, 6 * sc);
-    ctx.save();
-    ctx.translate(x, y + bob);
-    ctx.scale(dir * sc, sc);
-
-    // Saree — maroon / deep red lower
-    ctx.beginPath();
-    ctx.ellipse(0, -28, 18, 28, 0, 0, Math.PI * 2);
-    ctx.fillStyle = C.maroon;
-    ctx.fill();
-
-    // Saree drape (gold border)
-    ctx.strokeStyle = C.gold;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(0, -28, 18, 28, 0, 0, Math.PI * 2);
+  // ── helper: warm outline stroke on current open path ─────────────────
+  function _pvOutline(ctx, w) {
+    ctx.strokeStyle = C.outline;
+    ctx.lineWidth   = w || 1.8;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
     ctx.stroke();
+  }
 
-    // Body / torso
-    ellipse(ctx, 0, -54, 13, 14, C.skinLight);
+  // ── helper: gold radial gradient for jewellery ────────────────────────
+  function _pvGold(ctx, cx, cy, r) {
+    var g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
+    g.addColorStop(0, C.goldLight);
+    g.addColorStop(1, C.goldDark);
+    return g;
+  }
 
-    // Arms
-    ctx.save();
-    ctx.translate(14, -56);
-    ctx.rotate(0.3);
-    roundRect(ctx, 0, -4, 8, 16, 4, C.skinLight);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(-14, -56);
-    ctx.rotate(-0.3);
-    roundRect(ctx, -8, -4, 8, 16, 4, C.skinLight);
-    ctx.restore();
+  // ── helper: draw the saree skirt (lower body) ─────────────────────────
+  // pose 'seated' draws a flat crossed-legs version instead.
+  function _pvSaree(ctx, pose, sway) {
+    var isSeated = (pose === 'seated');
+    if (isSeated) {
+      // Flat oval base for cross-legged sitting
+      ctx.beginPath();
+      ctx.ellipse(0, -12, 30, 14, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.parSaree;
+      ctx.fill();
+      _pvOutline(ctx, 1.5);
+      // Gold hem border
+      ctx.beginPath();
+      ctx.ellipse(0, -12, 30, 14, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = C.goldDark; ctx.lineWidth = 3; ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, -12, 30, 14, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = C.goldLight; ctx.lineWidth = 1; ctx.stroke();
+      // Crossed-leg shapes
+      ellipse(ctx, -18, -8, 10, 7, C.parSaree);
+      ellipse(ctx,  18, -8, 10, 7, C.parSaree);
+      // Feet peeking out at the sides
+      ellipse(ctx, -26, -6, 7, 4, C.parSkin);
+      ellipse(ctx,  26, -6, 7, 4, C.parSkin);
+    } else {
+      // Standing saree: wide trapezoid/bell from waist to ankle
+      var sw = sway; // gentle side sway offset for idle/walk
+      ctx.beginPath();
+      ctx.moveTo(-22 + sw, -16);
+      ctx.bezierCurveTo(-28 + sw, -28, -20, -66, -14, -76);
+      ctx.lineTo(14, -76);
+      ctx.bezierCurveTo(20, -66, 28 - sw, -28, 22 - sw, -16);
+      ctx.quadraticCurveTo(0, -8 + Math.abs(sw) * 0.5, -22 + sw, -16);
+      ctx.closePath();
+      ctx.fillStyle = C.parSaree;
+      ctx.fill();
+      _pvOutline(ctx, 1.5);
+      // Gold border along hem
+      ctx.beginPath();
+      ctx.moveTo(-22 + sw, -16);
+      ctx.quadraticCurveTo(0, -8 + Math.abs(sw) * 0.5, 22 - sw, -16);
+      ctx.strokeStyle = C.goldDark; ctx.lineWidth = 3.5; ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-22 + sw, -16);
+      ctx.quadraticCurveTo(0, -8 + Math.abs(sw) * 0.5, 22 - sw, -16);
+      ctx.strokeStyle = C.goldLight; ctx.lineWidth = 1.2; ctx.stroke();
+      // Pleat lines
+      ctx.strokeStyle = 'rgba(120,40,0,0.28)'; ctx.lineWidth = 1.2;
+      for (var pl = -1; pl <= 1; pl++) {
+        ctx.beginPath();
+        ctx.moveTo(pl * 6 + sw * 0.3, -18);
+        ctx.quadraticCurveTo(pl * 8, -46, pl * 5, -72);
+        ctx.stroke();
+      }
+      // Feet (small, peaking below skirt)
+      ellipse(ctx, -10, -2, 7, 4, C.parSkin);
+      ellipse(ctx,  10, -2, 7, 4, C.parSkin);
+      // Toe highlight
+      ellipse(ctx, -12, -2, 3, 2, C.parHi);
+      ellipse(ctx,  12, -2, 3, 2, C.parHi);
+    }
+  }
 
-    // Neck
-    ellipse(ctx, 0, -68, 6, 5, C.skinLight);
+  // ── helper: blouse (crop top) + waist + pallu drape ──────────────────
+  function _pvTorso(ctx, pose) {
+    var isSeated = (pose === 'seated');
+    var torsoY = isSeated ? -46 : -92;  // waist centre Y
 
-    // Head
-    ellipse(ctx, 0, -80, 14, 16, C.skinLight);
-    outline(ctx, 1);
-
-    // Hair (dark, up-do)
+    // Cream-yellow blouse with gold trim
     ctx.beginPath();
-    ctx.ellipse(0, -90, 13, 10, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#1A0A00';
+    ctx.ellipse(0, torsoY, 13, 14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.parBlouse;
     ctx.fill();
-    // Hair bun
-    circle(ctx, 0, -97, 6, '#1A0A00');
+    _pvOutline(ctx, 1.4);
 
-    // Eyes (kind, almond shaped)
-    ctx.fillStyle = '#2A1A0A';
-    ctx.beginPath(); ctx.ellipse(-5, -80, 4, 2.5, -0.2, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(5,  -80, 4, 2.5, 0.2,  0, Math.PI*2); ctx.fill();
-    // Eye whites
-    circle(ctx, -5, -80, 2, C.white);
-    circle(ctx,  5, -80, 2, C.white);
-    // Pupils
-    circle(ctx, -5, -80, 1.2, '#2A1A0A');
-    circle(ctx,  5, -80, 1.2, '#2A1A0A');
+    // Gold trim strip at blouse hem
+    ctx.beginPath();
+    ctx.ellipse(0, torsoY + 10, 13, 4, 0, Math.PI, Math.PI * 2);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2.5; ctx.stroke();
 
-    // Bindi
-    circle(ctx, 0, -86, 2.5, C.maroon);
+    // Shade on torso right side
+    ctx.beginPath();
+    ctx.ellipse(5, torsoY, 5, 10, 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = C.parShade;
+    ctx.globalAlpha = 0.28;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Pallu drape over left shoulder (diagonal strip)
+    ctx.save();
+    ctx.translate(-8, torsoY - 6);
+    ctx.rotate(-0.35);
+    ctx.beginPath();
+    ctx.rect(-4, -20, 9, 26);
+    ctx.fillStyle = C.parSaree;
+    ctx.fill();
+    // Gold border on pallu
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+
+    // Gold necklace arc below throat
+    ctx.beginPath();
+    ctx.arc(0, torsoY - 10, 10, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.strokeStyle = _pvGold(ctx, 0, torsoY - 10, 10);
+    ctx.lineWidth = 3; ctx.stroke();
+    // Pendant dot
+    circle(ctx, 0, torsoY - 1, 2.5, C.goldDark);
+  }
+
+  // ── helper: neck + head + hair + face ─────────────────────────────────
+  // headTurn: fraction -1..1 for 'look' pose; bigSmile for 'smile' pose
+  function _pvHead(ctx, t, pose, headTurn, bigSmile, isBack) {
+    var isSeated = (pose === 'seated');
+    var baseY    = isSeated ? -62 : -108;  // centre-of-head Y
+
+    // --- Back view: simple hair bun only --------------------------------
+    if (isBack) {
+      // Neck
+      ellipse(ctx, 0, baseY + 20, 7, 7, C.parSkin);
+      // Head blob
+      ellipse(ctx, 0, baseY, 18, 20, C.parSkin);
+      // Hair covering the whole head
+      ctx.beginPath();
+      ctx.ellipse(0, baseY - 2, 18, 20, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.parHair; ctx.fill();
+      // Hair braid draping down the back
+      ctx.beginPath();
+      ctx.moveTo(-4, baseY + 14);
+      ctx.bezierCurveTo(-7, baseY + 30, -5, baseY + 50, -3, baseY + 66);
+      ctx.bezierCurveTo(-1, baseY + 72, 4, baseY + 72, 4, baseY + 64);
+      ctx.bezierCurveTo(5, baseY + 50, 6, baseY + 30, 4, baseY + 14);
+      ctx.fillStyle = C.parHair; ctx.fill();
+      _pvOutline(ctx, 1.4);
+      // Maang tikka chain going up
+      ctx.beginPath();
+      ctx.moveTo(0, baseY - 18);
+      ctx.lineTo(0, baseY - 30);
+      ctx.strokeStyle = C.goldDark; ctx.lineWidth = 1.5; ctx.stroke();
+      circle(ctx, 0, baseY - 30, 3, C.goldDark);
+      return;
+    }
+
+    // --- Front / side view -----------------------------------------------
+    // Neck
+    ellipse(ctx, headTurn * 4, baseY + 22, 7, 8, C.parSkin);
+    _pvOutline(ctx, 1.2);
+    // Shade on neck
+    ellipse(ctx, headTurn * 4 + 3, baseY + 22, 3, 6, C.parShade);
+    ctx.globalAlpha = 0.35; ctx.fill(); ctx.globalAlpha = 1;
+
+    // Hair — main flowing mass behind head
+    ctx.beginPath();
+    ctx.ellipse(headTurn * 3, baseY - 4, 20, 22, headTurn * 0.12, 0, Math.PI * 2);
+    ctx.fillStyle = C.parHair; ctx.fill();
+    // Braid tail down the left side
+    ctx.beginPath();
+    ctx.moveTo(-16 + headTurn * 2, baseY + 16);
+    ctx.bezierCurveTo(-22, baseY + 32, -18, baseY + 54, -14, baseY + 68);
+    ctx.bezierCurveTo(-12, baseY + 74, -8, baseY + 74, -8, baseY + 66);
+    ctx.bezierCurveTo(-6, baseY + 54, -8, baseY + 32, -12, baseY + 14);
+    ctx.closePath();
+    ctx.fillStyle = C.parHair; ctx.fill();
+    _pvOutline(ctx, 1.4);
+    // Gold hairpin on braid
+    ctx.beginPath();
+    ctx.arc(-12, baseY + 32, 4, 0, Math.PI * 2);
+    ctx.fillStyle = _pvGold(ctx, -12, baseY + 32, 4); ctx.fill();
+    _pvOutline(ctx, 1);
+
+    // Head base (skin)
+    ellipse(ctx, headTurn * 3, baseY, 18, 20, C.parSkin);
+    _pvOutline(ctx, 1.8);
+    // Forehead highlight
+    ellipse(ctx, headTurn * 2 - 1, baseY - 8, 8, 6, C.parHi);
+    ctx.globalAlpha = 0.45; ctx.fill(); ctx.globalAlpha = 1;
+    // Chin shade
+    ellipse(ctx, headTurn * 3 + 2, baseY + 14, 7, 5, C.parShade);
+    ctx.globalAlpha = 0.30; ctx.fill(); ctx.globalAlpha = 1;
+
+    // Maang tikka: chain from hair parting down to bindi area
+    var tikX = headTurn * 3;
+    ctx.beginPath();
+    ctx.moveTo(tikX, baseY - 18);
+    ctx.lineTo(tikX, baseY - 9);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 1.5; ctx.stroke();
+    circle(ctx, tikX, baseY - 19, 3.5, C.goldDark);
+    // Small jewel at end of chain
+    circle(ctx, tikX, baseY - 9, 2.5, C.parSaree);
+
+    // Gold jhumka earrings (hanging drop)
+    for (var side = -1; side <= 1; side += 2) {
+      var ex = side * 17 + headTurn * 2;
+      // Ear
+      ellipse(ctx, ex, baseY + 2, 5, 6, C.parSkin);
+      _pvOutline(ctx, 1);
+      // Jhumka top disc
+      ctx.beginPath();
+      ctx.arc(ex, baseY + 4, 4, 0, Math.PI * 2);
+      ctx.fillStyle = _pvGold(ctx, ex, baseY + 4, 4); ctx.fill();
+      _pvOutline(ctx, 1);
+      // Jhumka hanging drop
+      circle(ctx, ex, baseY + 12, 3, C.goldDark);
+      ctx.beginPath();
+      ctx.moveTo(ex, baseY + 8);
+      ctx.lineTo(ex, baseY + 10);
+      ctx.strokeStyle = C.goldDark; ctx.lineWidth = 1.2; ctx.stroke();
+    }
+
+    // Bindi (red dot on forehead)
+    circle(ctx, headTurn * 3, baseY - 6, 3, C.maroon);
+
+    // Eyes — almond shaped, kind and calm
+    // Blink every ~3.5 s: open for 3 s, closed for 0.15 s
+    var blinkPhase = (t % 3.5);
+    var eyeH = (blinkPhase > 3.35) ? 0.4 : 2.8;  // squish to simulate blink
+    var ex0 = headTurn * 3;
+    for (var e = -1; e <= 1; e += 2) {
+      var eyeX = ex0 + e * 6;
+      var eyeY = baseY + 2;
+      // White
+      ctx.beginPath();
+      ctx.ellipse(eyeX, eyeY, 5, eyeH, e * 0.15, 0, Math.PI * 2);
+      ctx.fillStyle = C.white; ctx.fill();
+      // Iris (warm brown)
+      ctx.beginPath();
+      ctx.ellipse(eyeX, eyeY, 3, Math.max(0.2, eyeH - 0.8), 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#3D1A00'; ctx.fill();
+      // Pupil
+      circle(ctx, eyeX, eyeY, Math.max(0.1, eyeH * 0.5), '#0D0500');
+      // Lash — small arc above eye
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, 5, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.strokeStyle = '#3D1A00'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    // Nose: tiny oval
+    ellipse(ctx, ex0, baseY + 8, 2, 1.5, C.parShade);
+    ctx.globalAlpha = 0.5; ctx.fill(); ctx.globalAlpha = 1;
 
     // Smile
+    var smileW = bigSmile ? 10 : 7;
+    var smileD = bigSmile ? 5  : 3;
     ctx.beginPath();
-    ctx.arc(0, -76, 5, 0.1, Math.PI - 0.1);
-    ctx.strokeStyle = '#8B4513';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    ctx.moveTo(ex0 - smileW, baseY + 13);
+    ctx.quadraticCurveTo(ex0, baseY + 13 + smileD, ex0 + smileW, baseY + 13);
+    ctx.strokeStyle = '#5A2010'; ctx.lineWidth = 1.8; ctx.stroke();
+    // Cheek blush (subtle, kind)
+    for (var bk = -1; bk <= 1; bk += 2) {
+      ctx.beginPath();
+      ctx.ellipse(ex0 + bk * 11, baseY + 12, 5, 3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.blush; ctx.globalAlpha = 0.32; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ── helper: arms + hands ─────────────────────────────────────────────
+  // pose drives arm angles; rightHoldsLotus = true draws pink lotus in right hand
+  function _pvArms(ctx, pose, t, isSeated, rightHoldsLotus) {
+    var torsoY = isSeated ? -46 : -92;
+    var walkSwing = (pose === 'walk') ? Math.sin(t * 4) * 0.22 : 0;
+    var blessRaise = (pose === 'bless') ? -0.55 : 0;
+    var smileRaise = (pose === 'smile') ? -0.25 : 0;
+
+    // LEFT arm (holds lotus)
+    var lAngle = -0.22 + walkSwing * 0.5 + smileRaise;
+    if (rightHoldsLotus) lAngle = -0.18;
+    ctx.save();
+    ctx.translate(-13, torsoY - 2);
+    ctx.rotate(lAngle);
+    // Upper arm
+    roundRect(ctx, -5, -4, 10, 22, 5, C.parSkin);
+    _pvOutline(ctx, 1.2);
+    // Shade
+    ctx.beginPath();
+    ctx.ellipse(2, 10, 3, 8, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.parShade; ctx.globalAlpha = 0.3; ctx.fill();
+    ctx.globalAlpha = 1;
+    // Gold bangle
+    ctx.beginPath();
+    ctx.arc(0, 14, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2.5; ctx.stroke();
+    // Forearm
+    roundRect(ctx, -4, 18, 8, 18, 4, C.parSkin);
+    _pvOutline(ctx, 1);
+    // Hand
+    ellipse(ctx, 0, 37, 5, 4, C.parSkin);
+    _pvOutline(ctx, 1);
+    // Lotus in left hand
+    _pvLotus(ctx, 0, 44);
+    ctx.restore();
+
+    // RIGHT arm (side / bless / smile-hand-to-chest)
+    var rAngle = 0.18 - walkSwing * 0.5 + blessRaise + smileRaise * 0.5;
+    ctx.save();
+    ctx.translate(13, torsoY - 2);
+    ctx.rotate(rAngle);
+    roundRect(ctx, -5, -4, 10, 22, 5, C.parSkin);
+    _pvOutline(ctx, 1.2);
+    ctx.beginPath();
+    ctx.ellipse(-2, 10, 3, 8, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.parShade; ctx.globalAlpha = 0.3; ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(0, 14, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = C.goldDark; ctx.lineWidth = 2.5; ctx.stroke();
+    // Forearm (shorter for blessing raise)
+    roundRect(ctx, -4, 18, 8, 18, 4, C.parSkin);
+    _pvOutline(ctx, 1);
+    ellipse(ctx, 0, 37, 5, 4, C.parSkin);
+    _pvOutline(ctx, 1);
+    // Bless pose: open palm glow
+    if (pose === 'bless') {
+      ctx.beginPath();
+      ctx.arc(0, 37, 9, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,216,80,0.35)'; ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── helper: pink lotus in one hand ────────────────────────────────────
+  function _pvLotus(ctx, cx, cy) {
+    // Green stem
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + 10);
+    ctx.strokeStyle = C.lotGreen; ctx.lineWidth = 2; ctx.stroke();
+    // Three petals arranged in a fan
+    var petalAngles = [-0.5, 0, 0.5];
+    for (var p = 0; p < petalAngles.length; p++) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(petalAngles[p]);
+      ctx.beginPath();
+      ctx.ellipse(0, -7, 4, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = C.lotPink; ctx.fill();
+      _pvOutline(ctx, 1);
+      ctx.restore();
+    }
+    // Yellow centre
+    circle(ctx, cx, cy - 1, 3.5, C.marigold);
+    _pvOutline(ctx, 1);
+  }
+
+  // ── Main drawParvati — orchestrates all helpers ───────────────────────
+  function drawParvati(ctx, x, y, t, opts) {
+    opts = opts || {};
+    var sc       = opts.scale || 1;
+    // Accept numeric dir (legacy: 1 or -1) or string ('right','left','up')
+    var dirRaw   = opts.dir !== undefined ? opts.dir : 'right';
+    var isBack   = (dirRaw === 'up');
+    var flipX    = (dirRaw === -1 || dirRaw === 'left') ? -1 : 1;
+    var pose     = opts.pose || 'idle';
+    var isSeated = (pose === 'seated');
+
+    // Animation values
+    var bob      = isSeated ? 0 : Math.sin(t * 1.8) * 2.5;   // idle/walk vertical bob
+    var sway     = Math.sin(t * 1.8) * (pose === 'walk' ? 3.5 : 1.5); // skirt sway
+    var headTurn = 0;
+    if (pose === 'look') headTurn = 0.55; // head canted slightly
+
+    // Scale factor — at scale 1, Parvati is ~165 px tall (about 1.5× Ganesha)
+    var shadowRx = isSeated ? 32 * sc : 26 * sc;
+    ovalShadow(ctx, x, y, shadowRx, 7 * sc);
+
+    ctx.save();
+    ctx.translate(x, y + bob * sc);
+    ctx.scale(flipX * sc, sc);
+
+    if (isBack) {
+      // ── Back view ──────────────────────────────────────────────────
+      _pvSaree(ctx, pose, sway);
+      _pvTorso(ctx, pose);
+      _pvHead(ctx, t, pose, 0, false, true);
+    } else {
+      // ── Front/side view — draw back-elements first (hair, braid) ──
+      // Saree skirt (drawn first so arms overlap the hem)
+      _pvSaree(ctx, pose, sway);
+      // Arms (drawn before torso so pallu overlaps)
+      _pvArms(ctx, pose, t, isSeated, true);
+      // Torso + pallu + necklace (on top of arms at shoulder)
+      _pvTorso(ctx, pose);
+      // Head + face (on top of everything)
+      _pvHead(ctx, t, pose, headTurn, pose === 'smile', false);
+    }
 
     ctx.restore();
   }

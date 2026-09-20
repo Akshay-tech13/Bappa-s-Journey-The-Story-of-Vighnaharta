@@ -184,8 +184,8 @@
   var states  = ['idle', 'walk', 'celebrate'];
   var stateIdx= 0;
 
-  var PAGE    = 0;           // current gallery page (0 = characters, 1 = props)
-  var PAGES   = 2;
+  var PAGE    = 0;           // gallery page (0 = characters, 1 = props, 2 = Parvati)
+  var PAGES   = 3;
 
   // Button hit-areas (in logical px)
   var btnPrev = { x: 60,       y: G.H - 50, w: 100, h: 44 };
@@ -267,7 +267,7 @@
     var row2y = 590;
     var chars = [
       { lbl: 'Mushak',      fn: function(c,x,y){ G.art.drawMushak(c,x,y,t,{scale:1.2}); } },
-      { lbl: 'Maa Parvati', fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:1.0}); } },
+      { lbl: 'Parvati idle',fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:0.65,pose:'idle'}); } },
       { lbl: 'Lord Shiva',  fn: function(c,x,y){ G.art.drawShiva(c,x,y,t,{scale:1.0}); } },
       { lbl: 'Kartikeya',   fn: function(c,x,y){ G.art.drawKartikeya(c,x,y,t,{scale:1.0}); } },
       { lbl: 'Devotee',     fn: function(c,x,y){ G.art.drawDevotee(c,x,y,t,{scale:1.0,handsUp:true}); } },
@@ -310,6 +310,40 @@
     });
   }
 
+  // ── Page 2: Maa Parvati — all poses and directions ────────────────────
+  function drawParvatiPage(ctx) {
+    var sc = 0.62;  // fits 165px character into 150px cell comfortably
+    // Row 1: front poses (idle, walk, look, smile, bless, seated)
+    var row1Poses = [
+      { lbl: 'idle',   fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc, pose:'idle'}); } },
+      { lbl: 'walk →', fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc, pose:'walk', dir:1}); } },
+      { lbl: 'walk ←', fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc, pose:'walk', dir:-1}); } },
+      { lbl: 'look',   fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc, pose:'look'}); } },
+      { lbl: 'smile',  fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc, pose:'smile'}); } },
+      { lbl: 'bless',  fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc, pose:'bless'}); } },
+    ];
+    var sp1  = G.W / (row1Poses.length + 1);
+    var row1y = 280;
+    G.art.centeredText(ctx, 'Front / Side — all poses', G.W/2, 90, 16, G.COL.cream);
+    row1Poses.forEach(function(p, i) {
+      cell(ctx, p.lbl, p.fn, sp1 * (i + 1), row1y);
+    });
+
+    // Row 2: back view + seated + scaled sizes
+    var row2Poses = [
+      { lbl: 'back (up)',  fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc, dir:'up'}); } },
+      { lbl: 'seated',     fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:sc*1.1, pose:'seated'}); } },
+      { lbl: 'scale 0.4',  fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:0.4, pose:'idle'}); } },
+      { lbl: 'scale 1.0',  fn: function(c,x,y){ G.art.drawParvati(c,x,y,t,{scale:0.4*2.5, pose:'walk', dir:1}); } },
+    ];
+    var sp2  = G.W / (row2Poses.length + 1);
+    var row2y = 570;
+    G.art.centeredText(ctx, 'Special poses + scale checks', G.W/2, 440, 16, G.COL.cream);
+    row2Poses.forEach(function(p, i) {
+      cell(ctx, p.lbl, p.fn, sp2 * (i + 1), row2y);
+    });
+  }
+
   // ── Scene ─────────────────────────────────────────────────────────────
   G.scenes['artGallery'] = {
     init: function () {
@@ -323,8 +357,8 @@
     update: function (dt) {
       t += dt;
       // Keyboard: left/right arrow to switch pages; S to cycle state
-      if (G.input.state.swipeLeft)  { PAGE = (PAGE - 1 + PAGES) % PAGES; }
-      if (G.input.state.swipeRight) { PAGE = (PAGE + 1) % PAGES; }
+      if (G.input.state.swipeLeft)  { PAGE = (PAGE - 1 + PAGES) % PAGES; G.input.state.swipeLeft  = false; }
+      if (G.input.state.swipeRight) { PAGE = (PAGE + 1) % PAGES;          G.input.state.swipeRight = false; }
     },
 
     draw: function (ctx) {
@@ -332,11 +366,13 @@
       G.art.clearBg(ctx, '#2E1A00');
 
       // Title bar
-      G.art.centeredText(ctx, 'ART GALLERY — ' + (PAGE === 0 ? 'Characters' : 'Props'), G.W/2, 36, 26, G.COL.marigold);
+      var pgLabel = PAGE === 0 ? 'Characters' : (PAGE === 1 ? 'Props' : 'Maa Parvati — all poses');
+      G.art.centeredText(ctx, 'ART GALLERY — ' + pgLabel, G.W/2, 36, 26, G.COL.marigold);
       G.art.centeredText(ctx, 'Page ' + (PAGE + 1) + ' / ' + PAGES, G.W/2, 64, 16, G.COL.gold);
 
-      if (PAGE === 0) drawCharPage(ctx);
-      else            drawPropPage(ctx);
+      if      (PAGE === 0) drawCharPage(ctx);
+      else if (PAGE === 1) drawPropPage(ctx);
+      else                 drawParvatiPage(ctx);
 
       // ── Bottom buttons ─────────────────────────────────────────────
       function btn(b, label) {
