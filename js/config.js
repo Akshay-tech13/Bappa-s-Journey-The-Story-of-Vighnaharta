@@ -14,8 +14,8 @@ G.GAME_SUBTITLE = "The Story of Vighnaharta";
 G.W = 1280;   // width
 G.H = 720;    // height
 
-// ── Level order — add 'level2' between level1 and level3 in M4 ────────────
-G.LEVEL_ORDER = ['level1', 'level3'];
+// ── Level order — level2 inserted in M4 ────────────────────────────────────
+G.LEVEL_ORDER = ['level1', 'level2', 'level3'];
 
 // ── Warm festival colour palette ──────────────────────────────────────────
 G.COL = {
