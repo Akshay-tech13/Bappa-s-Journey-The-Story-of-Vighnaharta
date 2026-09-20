@@ -175,17 +175,19 @@
   }
 
   // ── Boot ──────────────────────────────────────────────────────────────
-  // ?debug=art  → art gallery
-  // ?debug=test → M0 test circle
-  // (default)   → real title screen
+  // ?debug=art        → art gallery
+  // ?debug=test       → M0 test circle
+  // ?debug=recap&slide=N (N=1-4) → jump straight to recap slide N
+  // (default)         → real title screen
   window.addEventListener('load', function () {
     lastTime = performance.now();
     requestAnimationFrame(loop);
     var params = new URLSearchParams(window.location.search);
     var dbg    = params.get('debug');
-    if      (dbg === 'art')  { G.sceneManager.goto('artGallery'); }
-    else if (dbg === 'test') { G.sceneManager.goto('test'); }
-    else                     { G.sceneManager.goto('title'); }
+    if      (dbg === 'art')   { G.sceneManager.goto('artGallery'); }
+    else if (dbg === 'test')  { G.sceneManager.goto('test'); }
+    else if (dbg === 'recap') { G.sceneManager.goto('recap'); }
+    else                      { G.sceneManager.goto('title'); }
   });
 
 })();
