@@ -15,6 +15,11 @@ var L3_BLESS_CD   = 2.0;    // Blessing cooldown seconds
 var L3_RIVER_X    = 3050;   // world X where the river starts
 var L3_PATH_Y     = G.H / 2;// centre Y of the walking path
 var L3_PATH_H     = 220;    // path height (walkable strip)
+var L3_DEV_R      = 24;     // devotee ground-circle collision radius (px)
+// Walkable band: player must stay in [PATH_Y - HALF + margin, PATH_Y + HALF - margin]
+var L3_WALK_HALF  = L3_PATH_H / 2 - 30;  // 80 px half-height of walkable band
+// Lamp post positions (world X) — diya lamp posts along path edges
+var L3_LAMPS = [200,480,760,1040,1320,1600,1880,2160,2440,2720,2960];
 
 // ── Scene object ─────────────────────────────────────────────────────────────
 G.scenes['level3'] = {
@@ -48,17 +53,45 @@ G.scenes['level3'] = {
       this.petals.push({ x: px2, y: py2, collected: false });
     }
 
-    // Devotees: simple walking silhouettes at fixed world positions, walk in place
+    // Devotees: placed ONLY along path edges so the centre corridor stays clear.
+    // Top edge row  (y = PATH_Y - PATH_H/2 + 18  — just inside top edge)
+    // Bottom edge row (y = PATH_Y + PATH_H/2 - 18 — just inside bottom edge)
+    // A few extra clusters staggered between the edges (still off centre).
+    // Rule: no devotee y is within L3_DEV_R of the PATH_Y centreline.
+    var TOP    = L3_PATH_Y - L3_PATH_H / 2 + 18;   // ≈ 249  (top edge band)
+    var BOT    = L3_PATH_Y + L3_PATH_H / 2 - 18;   // ≈ 471  (bottom edge band)
+    var COLS   = ['#8B1A1A','#4A7C59','#F26B38','#FFF8E7','#1A1A4E'];
     this.devotees = [
-      { x: 350,  y: L3_PATH_Y - 50, col: '#8B1A1A', phase: 0   },
-      { x: 600,  y: L3_PATH_Y + 40, col: '#4A7C59', phase: 1.2 },
-      { x: 950,  y: L3_PATH_Y - 30, col: '#F26B38', phase: 0.6 },
-      { x: 1250, y: L3_PATH_Y + 55, col: '#8B1A1A', phase: 2.1 },
-      { x: 1550, y: L3_PATH_Y - 45, col: '#4A7C59', phase: 0.3 },
-      { x: 1850, y: L3_PATH_Y + 30, col: '#F26B38', phase: 1.8 },
-      { x: 2150, y: L3_PATH_Y - 20, col: '#8B1A1A', phase: 0.9 },
-      { x: 2450, y: L3_PATH_Y + 50, col: '#4A7C59', phase: 1.5 },
-      { x: 2750, y: L3_PATH_Y - 35, col: '#F26B38', phase: 0.4 },
+      // ── TOP ROW (spaced ~280 px apart, staggered in y by ±12) ──────────
+      { x:  280, y: TOP,      col: COLS[0], phase: 0.0,  walk: false },
+      { x:  560, y: TOP - 8,  col: COLS[2], phase: 1.1,  walk: true  },
+      { x:  840, y: TOP + 10, col: COLS[1], phase: 2.3,  walk: false },
+      { x: 1120, y: TOP,      col: COLS[3], phase: 0.7,  walk: true  },
+      { x: 1400, y: TOP - 6,  col: COLS[0], phase: 1.9,  walk: false },
+      { x: 1680, y: TOP + 8,  col: COLS[2], phase: 0.4,  walk: true  },
+      { x: 1960, y: TOP,      col: COLS[4], phase: 1.6,  walk: false },
+      { x: 2240, y: TOP - 10, col: COLS[1], phase: 2.8,  walk: true  },
+      { x: 2520, y: TOP + 6,  col: COLS[0], phase: 0.2,  walk: false },
+      { x: 2800, y: TOP,      col: COLS[3], phase: 1.4,  walk: true  },
+      // ── BOTTOM ROW ──────────────────────────────────────────────────────
+      { x:  420, y: BOT,      col: COLS[1], phase: 0.5,  walk: true  },
+      { x:  700, y: BOT + 8,  col: COLS[0], phase: 1.7,  walk: false },
+      { x:  980, y: BOT - 8,  col: COLS[2], phase: 0.9,  walk: true  },
+      { x: 1260, y: BOT,      col: COLS[4], phase: 2.2,  walk: false },
+      { x: 1540, y: BOT + 10, col: COLS[3], phase: 1.3,  walk: true  },
+      { x: 1820, y: BOT - 6,  col: COLS[0], phase: 0.6,  walk: false },
+      { x: 2100, y: BOT,      col: COLS[1], phase: 2.0,  walk: true  },
+      { x: 2380, y: BOT + 8,  col: COLS[2], phase: 1.1,  walk: false },
+      { x: 2660, y: BOT - 4,  col: COLS[0], phase: 0.3,  walk: true  },
+      { x: 2940, y: BOT,      col: COLS[3], phase: 1.8,  walk: false },
+      // ── CLUSTER PAIRS (edge side only, gap between pair members) ────────
+      // Each pair: both members on same edge but ~50 px apart in x
+      { x:  470, y: TOP + 12, col: COLS[2], phase: 0.8,  walk: false },
+      { x:  520, y: TOP - 4,  col: COLS[1], phase: 2.1,  walk: true  },
+      { x: 1360, y: BOT - 8,  col: COLS[0], phase: 1.5,  walk: false },
+      { x: 1410, y: BOT + 6,  col: COLS[2], phase: 0.2,  walk: true  },
+      { x: 2050, y: TOP + 6,  col: COLS[3], phase: 1.0,  walk: false },
+      { x: 2100, y: TOP - 8,  col: COLS[0], phase: 2.4,  walk: true  },
     ];
 
     // Scoring
@@ -136,10 +169,27 @@ G.scenes['level3'] = {
       if (mvx !== 0) this.playerDir = mvx > 0 ? 1 : -1;
     }
 
-    // Clamp player to path strip
+    // ── Devotee collision: push Ganesha out of each devotee's circle ───
+    // Slide around (never stop dead) using a push-out vector.
+    for (i = 0; i < this.devotees.length; i++) {
+      var dev = this.devotees[i];
+      var ddx = this.px - dev.x;
+      var ddy = this.py - dev.y;
+      var distSq = ddx * ddx + ddy * ddy;
+      var minDist = L3_DEV_R + 22; // devotee r + Ganesha foot radius
+      if (distSq < minDist * minDist && distSq > 0.001) {
+        var dist  = Math.sqrt(distSq);
+        var overlap = minDist - dist;
+        // Push Ganesha out along the separation vector
+        this.px += (ddx / dist) * overlap;
+        this.py += (ddy / dist) * overlap;
+      }
+    }
+
+    // ── Clamp player to path strip ─────────────────────────────────────
     this.px = Math.max(60, Math.min(L3_RIVER_X + 80, this.px));
-    this.py = Math.max(L3_PATH_Y - L3_PATH_H / 2 + 30,
-              Math.min(L3_PATH_Y + L3_PATH_H / 2 - 30, this.py));
+    this.py = Math.max(L3_PATH_Y - L3_WALK_HALF,
+              Math.min(L3_PATH_Y + L3_WALK_HALF, this.py));
 
     // ── Blessing ───────────────────────────────────────────────────────
     this.blessCd = Math.max(0, this.blessCd - dt);
@@ -168,9 +218,9 @@ G.scenes['level3'] = {
     for (i = 0; i < this.diyas.length; i++) {
       var diya = this.diyas[i];
       if (!diya.lit) {
-        var ddx = diya.x - this.px;
-        var ddy = diya.y - this.py;
-        if (Math.sqrt(ddx*ddx + ddy*ddy) <= L3_LIGHT_R) {
+        var proxDx = diya.x - this.px;
+        var proxDy = diya.y - this.py;
+        if (Math.sqrt(proxDx*proxDx + proxDy*proxDy) <= L3_LIGHT_R) {
           diya.lit = true;
           this.dyasLit++;
           G.audio.chime();
@@ -262,91 +312,135 @@ G.scenes['level3'] = {
 
   // ── _drawWalkScene ────────────────────────────────────────────────────────
   _drawWalkScene: function (ctx) {
-    var i;
+    var i, t = this.t;
     ctx.save();
     ctx.translate(-this.camX, 0);
 
-    // ── Night sky background ───────────────────────────────────────────
-    ctx.fillStyle = G.COL.indigo;
-    ctx.fillRect(0, 0, L3_WORLD_W, G.H);
+    // ── Night sky (gradient: deep indigo → midnight blue) ─────────────
+    var skyBot = L3_PATH_Y - L3_PATH_H / 2;  // sky ends at top of path
+    var skyGrd = ctx.createLinearGradient(0, 0, 0, skyBot);
+    skyGrd.addColorStop(0,   '#0A0820');
+    skyGrd.addColorStop(0.6, '#1B1F4B');
+    skyGrd.addColorStop(1,   '#2A1840');
+    ctx.fillStyle = skyGrd;
+    ctx.fillRect(0, 0, L3_WORLD_W, skyBot);
 
-    // Stars in sky (top portion)
+    // Ground below path (dark grass verge)
+    var pathBot = L3_PATH_Y + L3_PATH_H / 2;
+    ctx.fillStyle = '#1A2810';
+    ctx.fillRect(0, pathBot, L3_WORLD_W, G.H - pathBot);
+
+    // Stars
     this._drawNightStars(ctx);
 
-    // ── Path (ground strip) ────────────────────────────────────────────
-    // Dirt/cobblestone path
-    ctx.fillStyle = '#2E2060';
-    ctx.fillRect(0, L3_PATH_Y - L3_PATH_H / 2, L3_WORLD_W, L3_PATH_H);
-    // Path edge highlights
-    ctx.strokeStyle = '#F5A62340';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, L3_PATH_Y - L3_PATH_H / 2);
-    ctx.lineTo(L3_WORLD_W, L3_PATH_Y - L3_PATH_H / 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, L3_PATH_Y + L3_PATH_H / 2);
-    ctx.lineTo(L3_WORLD_W, L3_PATH_Y + L3_PATH_H / 2);
-    ctx.stroke();
+    // Moon (large, upper-right of visible area — fixed in world, far right)
+    G.scenery.drawMoon(ctx, L3_WORLD_W - 300, 70, 52, t);
 
-    // ── Marigold garland decorations along path edges ──────────────────
-    for (i = 0; i < 20; i++) {
-      var gx = i * 160 + 80;
-      // Top garland swag
-      this._drawGarland(ctx, gx, L3_PATH_Y - L3_PATH_H / 2 - 8);
-      // Bottom garland swag
-      this._drawGarland(ctx, gx, L3_PATH_Y + L3_PATH_H / 2 + 8);
+    // ── Path ──────────────────────────────────────────────────────────
+    var pathGrd = ctx.createLinearGradient(0, skyBot, 0, pathBot);
+    pathGrd.addColorStop(0, '#352870');
+    pathGrd.addColorStop(0.5, '#2E2060');
+    pathGrd.addColorStop(1, '#221848');
+    ctx.fillStyle = pathGrd;
+    ctx.fillRect(0, skyBot, L3_WORLD_W, L3_PATH_H);
+
+    // Subtle cobblestone texture (repeating dark lines)
+    ctx.strokeStyle = 'rgba(60,50,120,0.4)';
+    ctx.lineWidth = 1;
+    for (i = 0; i < 10; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, skyBot + (i + 0.5) * (L3_PATH_H / 10));
+      ctx.lineTo(L3_WORLD_W, skyBot + (i + 0.5) * (L3_PATH_H / 10));
+      ctx.stroke();
     }
 
-    // ── Diyas ──────────────────────────────────────────────────────────
+    // Path edge glow lines
+    ctx.strokeStyle = 'rgba(245,166,35,0.35)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, skyBot); ctx.lineTo(L3_WORLD_W, skyBot); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, pathBot); ctx.lineTo(L3_WORLD_W, pathBot); ctx.stroke();
+
+    // ── Lamp posts along path edges ────────────────────────────────────
+    for (i = 0; i < L3_LAMPS.length; i++) {
+      var lx = L3_LAMPS[i];
+      this._drawLampPost(ctx, lx, skyBot, t);       // top edge lamp
+      this._drawLampPost(ctx, lx, pathBot, t);      // bottom edge lamp
+      // Hanging garland between consecutive lamp posts
+      if (i < L3_LAMPS.length - 1) {
+        var lx2 = L3_LAMPS[i + 1];
+        G.scenery.drawMarigoldGarland(ctx, lx, skyBot - 2, lx2, skyBot - 2, t);
+        G.scenery.drawMarigoldGarland(ctx, lx, pathBot + 2, lx2, pathBot + 2, t);
+      }
+    }
+
+    // ── Diyas on path ─────────────────────────────────────────────────
     for (i = 0; i < this.diyas.length; i++) {
-      G.art.drawDiya(ctx, this.diyas[i].x, this.diyas[i].y, this.diyas[i].lit, this.t);
+      G.art.drawDiya(ctx, this.diyas[i].x, this.diyas[i].y, this.diyas[i].lit, t);
     }
 
     // ── Petals ────────────────────────────────────────────────────────
     for (i = 0; i < this.petals.length; i++) {
       if (!this.petals[i].collected) {
-        G.art.drawPetal(ctx, this.petals[i].x, this.petals[i].y, this.t);
+        G.art.drawPetal(ctx, this.petals[i].x, this.petals[i].y, t);
       }
     }
 
-    // ── Devotees ──────────────────────────────────────────────────────
-    for (i = 0; i < this.devotees.length; i++) {
-      var dev = this.devotees[i];
-      G.art.drawDevotee(ctx, dev.x, dev.y, this.t, {
-        color: dev.col, phase: dev.phase, handsUp: false
-      });
-    }
-
-    // ── Blessing glow ring ────────────────────────────────────────────
-    if (this.blessAnim > 0) {
-      var ringAlpha = this.blessAnim / 0.6;
-      var ringR     = (1 - ringAlpha) * L3_BLESS_R + 20;
-      var grd = ctx.createRadialGradient(this.px, this.py, ringR * 0.5, this.px, this.py, ringR);
-      grd.addColorStop(0, 'rgba(255,210,80,' + (ringAlpha * 0.45) + ')');
-      grd.addColorStop(1, 'rgba(255,210,80,0)');
-      ctx.beginPath();
-      ctx.arc(this.px, this.py, ringR, 0, Math.PI * 2);
-      ctx.fillStyle = grd;
-      ctx.fill();
-    }
-
-    // ── Ganesha (player) ──────────────────────────────────────────────
-    var moving = (G.input.state.move.x !== 0 || G.input.state.move.y !== 0);
-    G.art.drawGanesha(ctx, this.px, this.py, this.t, {
-      state: moving ? 'walk' : 'idle',
-      dir:   this.playerDir,
-    });
-
     // ── River entrance hint (glow at far end) ─────────────────────────
-    var hintAlpha = 0.3 + Math.sin(this.t * 2) * 0.2;
-    var hgrd = ctx.createRadialGradient(L3_RIVER_X, L3_PATH_Y, 10, L3_RIVER_X, L3_PATH_Y, 120);
+    var hintAlpha = 0.3 + Math.sin(t * 2) * 0.2;
+    var hgrd = ctx.createRadialGradient(L3_RIVER_X, L3_PATH_Y, 10, L3_RIVER_X, L3_PATH_Y, 140);
     hgrd.addColorStop(0, 'rgba(42,171,184,' + hintAlpha + ')');
     hgrd.addColorStop(1, 'rgba(42,171,184,0)');
     ctx.beginPath();
-    ctx.arc(L3_RIVER_X, L3_PATH_Y, 120, 0, Math.PI * 2);
-    ctx.fillStyle = hgrd;
-    ctx.fill();
+    ctx.arc(L3_RIVER_X, L3_PATH_Y, 140, 0, Math.PI * 2);
+    ctx.fillStyle = hgrd; ctx.fill();
+
+    // ── Blessing glow ring (drawn before characters) ──────────────────
+    if (this.blessAnim > 0) {
+      var ringAlpha = this.blessAnim / 0.6;
+      var ringR     = (1 - ringAlpha) * L3_BLESS_R + 20;
+      var bGrd = ctx.createRadialGradient(this.px, this.py, ringR * 0.5, this.px, this.py, ringR);
+      bGrd.addColorStop(0, 'rgba(255,210,80,' + (ringAlpha * 0.45) + ')');
+      bGrd.addColorStop(1, 'rgba(255,210,80,0)');
+      ctx.beginPath();
+      ctx.arc(this.px, this.py, ringR, 0, Math.PI * 2);
+      ctx.fillStyle = bGrd; ctx.fill();
+    }
+
+    // ── Y-SORT: Ganesha + devotees sorted by feet y, drawn back-to-front
+    var drawList = [];
+
+    // Add devotees
+    for (i = 0; i < this.devotees.length; i++) {
+      var dv = this.devotees[i];
+      drawList.push({ type: 'devotee', y: dv.y, ref: dv });
+    }
+
+    // Add Ganesha
+    var moving = (G.input.state.move.x !== 0 || G.input.state.move.y !== 0);
+    drawList.push({ type: 'ganesha', y: this.py });
+
+    // Sort ascending y (lowest y = furthest back = drawn first)
+    drawList.sort(function (a, b) { return a.y - b.y; });
+
+    // Draw in sorted order
+    for (i = 0; i < drawList.length; i++) {
+      var item = drawList[i];
+      if (item.type === 'ganesha') {
+        G.art.drawGanesha(ctx, this.px, this.py, t, {
+          state: moving ? 'walk' : 'idle',
+          dir:   this.playerDir,
+        });
+      } else {
+        var dref = item.ref;
+        // Walking devotees sway left-right slightly
+        var devSway = dref.walk ? Math.sin(t * 1.6 + dref.phase) * 5 : 0;
+        G.art.drawDevotee(ctx, dref.x + devSway, dref.y, t, {
+          color: dref.col, phase: dref.phase,
+          handsUp: false,
+          scale: 0.95 + Math.sin(dref.phase) * 0.05,  // slight size variety
+        });
+      }
+    }
 
     ctx.restore();  // end camera transform
 
@@ -395,6 +489,30 @@ G.scenes['level3'] = {
     ctx.strokeStyle = '#5A3A10';
     ctx.lineWidth = 1.5;
     ctx.stroke();
+  },
+
+  // ── _drawLampPost ─────────────────────────────────────────────────────────
+  // Draws a diya lamp post at (lx, edgeY). Post goes up from the edge.
+  // top=true  → post rises UP from the edge (top edge lamp goes into sky)
+  // top=false → post hangs DOWN from the edge (bottom edge lamp)
+  // We determine direction by whether edgeY is near top or bottom of path.
+  _drawLampPost: function (ctx, lx, edgeY, t) {
+    var isTop = (edgeY < L3_PATH_Y);  // top edge lamp rises up
+    var dir   = isTop ? -1 : 1;       // -1 = up, +1 = down
+    var postH = 38;
+    // Post
+    ctx.strokeStyle = '#3A2010'; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(lx, edgeY);
+    ctx.lineTo(lx, edgeY + dir * postH);
+    ctx.stroke();
+    // Arm
+    ctx.beginPath();
+    ctx.moveTo(lx, edgeY + dir * postH);
+    ctx.lineTo(lx + 12, edgeY + dir * postH);
+    ctx.stroke();
+    // Diya on arm tip
+    G.art.drawDiya(ctx, lx + 12, edgeY + dir * postH, true, t);
   },
 
   // ── _drawHUD ──────────────────────────────────────────────────────────────
